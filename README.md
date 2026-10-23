@@ -1,4 +1,4 @@
-# Bloodshot / Battle Frenzy
+# Bloodshot - Battle Frenzy : Headache Edition
 
 **Version 0.1**
 
