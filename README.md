@@ -5,6 +5,7 @@
 A native Godot reconstruction of the European Mega CD game. Original game assets
 are read from your own supported disc image at runtime; no original media, ripped
 artwork, sound or console firmware is included. See [original media](roms/README.md).
+AI assistance was used in this project.
 
 The game includes the sixteen-level campaign, original menus and audio, native
 mouse/gamepad controls, save/load, widescreen HUD, four-player online co-op and
