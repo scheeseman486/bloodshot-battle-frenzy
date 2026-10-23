@@ -85,3 +85,10 @@ additional details about media storage.
 Project-authored source is available under BSD-3-Clause. Third-party components
 retain their own licences and notices. The source release includes the Original
 CD editor dock, which reads assets from the developer's own game image.
+
+## Updated 0.1 build
+
+- Restored the original Welcome sound when starting a playable level.
+- Restored the level-completion music and kept it playing through co-op results.
+  Music playback remains independent on each client.
+- Clarified the opening notice to say "This port is not licensed".

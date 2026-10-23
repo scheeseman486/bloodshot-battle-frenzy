@@ -123,9 +123,20 @@ func bind_session(session: RefCounted) -> void:
 	_update_listener()
 
 
-func start_campaign(level: Resource) -> bool:
+func start_campaign(level: Resource, entry_cue: bool = true) -> bool:
 	var number := int(str(level.source_path).get_file().trim_prefix("LEVEL").trim_suffix(".LEV"))
-	return play_track(int(audio_catalog.level_tracks[(maxi(1, number) - 1) % 8]), true)
+	var started := play_track(int(audio_catalog.level_tracks[(maxi(1, number) - 1) % 8]), true)
+	# $36F40/$37074: local player-view establishment, not every respawn.
+	# Checkpoint restoration uses play_track directly and never replays this cue.
+	if started and entry_cue:
+		play_source(0x18700)
+	return started
+
+
+func ensure_completion_music() -> bool:
+	# Clear cards and late joins may observe the same semantic more than once.
+	# Retain the existing stream even after its natural end; never restart it.
+	return true if music_track == 14 and not music_loop else play_track(14, false)
 
 
 func play_source(source_id: int, position: Dictionary = {}) -> bool:
@@ -257,6 +268,11 @@ func _on_request(request: Dictionary) -> void:
 			if client != null and request.get("emitter", {}) == _listener_reference(client):
 				position = {}  # Own weapon/pickup feedback stays centered.
 			play_source(int(request.source_id), position)
+		"music_play":
+			if int(request.track) == 14:
+				ensure_completion_music()
+			else:
+				play_track(int(request.track), bool(request.get("loop", false)))
 		"music_seek":
 			play_track(int(request.track), false, true)
 		"music_resume":

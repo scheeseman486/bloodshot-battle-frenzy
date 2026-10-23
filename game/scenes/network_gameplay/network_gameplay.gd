@@ -145,7 +145,7 @@ func _joined() -> void:
 			return
 		$Audio.bind_session(endpoint.client)
 		$Audio.bind_listener($Player/Camera, $World.level.spawn)
-		$Audio.start_campaign($World.level)
+		$Audio.start_campaign($World.level, _entry_audio_allowed())
 		$OriginalHud/LiveScores.configure(
 			$OriginalHud/Hud.ui, $World.source.load_cd_small_font().native_font()
 		)
@@ -159,7 +159,7 @@ func _joined() -> void:
 				resume_host = true
 		_configured_epoch = int(endpoint.epoch)
 		if ready_to_play:
-			$Audio.start_campaign($World.level)
+			$Audio.start_campaign($World.level, _entry_audio_allowed())
 	if _configured_token != int(endpoint.token):
 		_configured_token = int(endpoint.token)
 		_close_card()
@@ -184,8 +184,20 @@ func _joined() -> void:
 		and (get_window().has_focus() or DisplayServer.get_name() == "headless")
 	):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Bootstrap/rejoin can miss the transient escape event. Recover selection
+	# from current semantic state without replaying Welcome or restarting 14.
+	if int(endpoint.client.session.actor_system.encounter.exit_delay) > 0 or endpoint.client.session.is_complete():
+		$Audio.ensure_completion_music()
 	if new_credential:
 		endpoint.reanchor_local_view(Time.get_ticks_usec())
+
+
+func _entry_audio_allowed() -> bool:
+	return (
+		endpoint.installed.party.phase == "playing"
+		and not bool(endpoint.installed.party.get("session", {}).get("lobby", false))
+		and int(endpoint.client.session.actor_system.encounter.exit_delay) == 0
+	)
 
 
 func _process(_delta: float) -> void:
@@ -482,7 +494,11 @@ func _present_party() -> void:
 			_card.result.credits = 0
 		_card.phase = party.phase
 		_card.completed.connect(_card_done)
-		$Audio.stop_all()
+		if party.phase == "clear":
+			$Audio.stop_effects()
+			$Audio.ensure_completion_music()
+		else:
+			$Audio.stop_all()
 		$OriginalHud.add_child(_card)
 		controls.clear()
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

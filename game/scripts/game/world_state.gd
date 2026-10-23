@@ -387,6 +387,8 @@ func _global_input_prefix() -> void:
 	# no survivor (and all offline play) retains the original reactor retry.
 	if actor_system.native_multiplayer and party_players().any(func(player): return int(player.fighter.state) == 3):
 		actor_system.encounter.exit_delay = 150
+		# Native co-op partial evacuation has the same completed-level handoff.
+		audio_requested.emit({"kind": "music_play", "track": 14, "loop": false})
 		return
 	for index: int in range(actor_system.actors.size()):
 		actor_system.actors[index] = Progression.restore(
@@ -463,9 +465,14 @@ func _step(elapsed: int, visibility: Dictionary, move_players: bool) -> void:
 		last_events.append_array(actor_system.events)
 		for player: RefCounted in _players:
 			player._sightings = player.actor_visibility.sightings(true)
+		var previous_exit_delay := int(actor_system.encounter.exit_delay)
 		actor_system.encounter = Progression.finish(
 			actor_system.encounter, party_players().map(func(player): return player.fighter), elapsed
 		)
+		if previous_exit_delay == 0 and int(actor_system.encounter.exit_delay) == 150:
+			# Original $3205E/$32068 replaces the old stream when escape begins,
+			# before the exit delay/card. This public event reaches every endpoint.
+			audio_requested.emit({"kind": "music_play", "track": 14, "loop": false})
 		if is_complete():
 			_finish_evacuation(false)
 	update_count += 1

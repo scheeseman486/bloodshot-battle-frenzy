@@ -1,11 +1,11 @@
 class_name NativeBootDisclaimer
 extends RefCounted
 ## Owner-requested native notice, replacing only the SEGA startup image.
-const NOTICE := "This game is not licensed by SEGA, Acclaim or Domark."
+const NOTICE := "This port is not licensed by SEGA, Acclaim or Domark."
 const LINES := [
 	"Bloodshot - Battle Frenzy",
 	"Headache Edition",
-	"This game is not licensed by",
+	"This port is not licensed by",
 	"SEGA, Acclaim or Domark."
 ]
 const ROWS := [0, 1, 3, 4]
