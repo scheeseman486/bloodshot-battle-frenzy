@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Original neutral package icon. No artwork from the game disc. -->
+  <rect x="8" y="8" width="112" height="112" rx="16" fill="#171c24"/>
+  <circle cx="64" cy="64" r="31" fill="none" stroke="#eee8dc" stroke-width="6"/>
+  <path d="M64 19v27m0 36v27M19 64h27m36 0h27" stroke="#b62d38" stroke-width="8"/>
+</svg>

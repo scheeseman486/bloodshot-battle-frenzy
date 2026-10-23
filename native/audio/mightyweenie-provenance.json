@@ -1,0 +1,14 @@
+{
+  "source_project": "mightyweenie",
+  "license": "BSD-3-Clause",
+  "ymfm_revision": "81aec25ccbb98f4873a255f7551ac4dadac59b4a",
+  "files": {
+    "mw_chips.cpp": "20f7a647d1028ed848913dc82da6fb134bb41870aa33a9b29e355b3ce2178dd4",
+    "mw_chips.h": "69bc750636abf1a07af5cacd5e8c93bbd9a68c71a8250e27632e252e5e0b1c2e",
+    "pcm_mixer.cpp": "70c3db4f801a4f41b9f7ee47423bd379881ca2bded139c97b3c4b7e757d5c33d",
+    "pcm_mixer.h": "5607855e03518f9af0cde545ae9844d6e314fe48452904d62752b309a8e31ac7",
+    "sn76489.cpp": "76dcc491f8c2da60e489435ff6709cfad7b92e232ed4514cdc95ed932116abfa",
+    "sn76489.h": "8dd36e0d3bfcf9464b054bffabecd1fbed402a59ca049a7766d4f2a88d242416"
+  },
+  "policy": "Unmodified source copies; original project remains untouched. Samples use native Godot playback rather than the optional MwChips PCM mixer."
+}

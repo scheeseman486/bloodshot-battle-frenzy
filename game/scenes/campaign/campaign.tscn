@@ -1,0 +1,95 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scenes/campaign/campaign.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/world/native_cd_world.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/player/cd_player.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/audio/cd_audio_service.gd" id="4"]
+
+[ext_resource type="Script" path="res://scenes/actors/cd_actor_layer.gd" id="5"]
+
+[ext_resource type="PackedScene" path="res://scenes/presentation/cd_billboard_pass.tscn" id="6"]
+
+[ext_resource type="PackedScene" path="res://scenes/hud/cd_gameplay_hud.tscn" id="7"]
+
+[ext_resource type="PackedScene" path="res://scenes/settings/display_options.tscn" id="8"]
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+background_color = Color(0, 0, 0, 1)
+tonemap_mode = 0
+
+[node name="Campaign" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Environment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="World" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Actors" type="Node3D" parent="."]
+script = ExtResource("5")
+
+[node name="Player" parent="." instance=ExtResource("3")]
+
+[node name="Audio" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="BillboardPass" parent="." instance=ExtResource("6")]
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Panel" type="PanelContainer" parent="Overlay"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 560.0
+
+[node name="Content" type="VBoxContainer" parent="Overlay/Panel"]
+layout_mode = 2
+
+[node name="Status" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "LEVEL1 · CD combat prototype"
+
+[node name="Health" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Health 128 · Lives 3"
+
+[node name="Weapon" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Weapon 0 · Ammo unlimited"
+
+[node name="Keys" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Keys: none"
+
+[node name="Objective" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Destroy the satellite nodes"
+
+[node name="Controls" type="Label" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "W / S: forward / back · A / D: strafe
+Arrow keys: move / turn · E: use a door · Esc / Enter: pause
+Click view: mouse aim · Space / Left mouse: fire · Q: cycle weapons
+Pause: Z/X/C = A/B/C · F12: development controls"
+
+[node name="Restart" type="Button" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Restart level"
+focus_mode = 0
+
+[node name="Menu" type="Button" parent="Overlay/Panel/Content"]
+layout_mode = 2
+text = "Main menu"
+focus_mode = 0
+
+
+[node name="OriginalHud" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="Hud" parent="OriginalHud" instance=ExtResource("7")]
+
+[node name="DisplayOptions" parent="Overlay/Panel/Content" instance=ExtResource("8")]
+layout_mode = 2

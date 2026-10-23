@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "edition": "European Mega CD",
+  "chd_sha1": "dba5550a313c4cf9c1686afd5e052896fb40c256",
+  "files": {
+    "/ARENA1.LEV": {
+      "size": 99516,
+      "sha256": "b39bc520f57d963ac5eb915789eaa53bdba89e2b334fecea3fc32a7d7ff98332"
+    },
+    "/ARENA2.LEV": {
+      "size": 77900,
+      "sha256": "31662ee07ae7df47ce76b3f829f9ef12a51753ba076ca68476aaeaec471386e4"
+    },
+    "/ARENA3.LEV": {
+      "size": 108516,
+      "sha256": "a967e0adc6a142e87fdfe670ab1c86dc66602676fa79c1563d171f2dd81bc540"
+    },
+    "/LEVEL1.LEV": {
+      "size": 228612,
+      "sha256": "2572692a291e58058809982a2e394e24c442536fa4a837ef61945b2b0f5a9b14"
+    },
+    "/LEVEL10.LEV": {
+      "size": 397330,
+      "sha256": "f8038ef87f17329f4374320db0c7353f030a0cf891b94b03e56e25940396f8fc"
+    },
+    "/LEVEL11.LEV": {
+      "size": 269668,
+      "sha256": "c5a65dd15abba2eb0a80b6dadd496ebf2d91dcbf1f3a6f50a75e7af4e45b4ebc"
+    },
+    "/LEVEL12.LEV": {
+      "size": 372398,
+      "sha256": "7aa84c3940e47257ab26983758493ae4c10ac6af075d07112d4b9e00f26f1b08"
+    },
+    "/LEVEL13.LEV": {
+      "size": 387740,
+      "sha256": "45e10726e26c932f87b50b398df3a72c79b2361e8e6d72649623f9c97dbd4bc9"
+    },
+    "/LEVEL14.LEV": {
+      "size": 386540,
+      "sha256": "c33ec9bb7e72d8d01cd7028f1c13863dca36a3bd35e150e5c4b26b4b47f755f5"
+    },
+    "/LEVEL15.LEV": {
+      "size": 366742,
+      "sha256": "4bd4344cde3cdf374082967c2bda1bc01933dcc4aa3d4d9da186a4fad5c14d01"
+    },
+    "/LEVEL16.LEV": {
+      "size": 381010,
+      "sha256": "29497157d7a458e7acbd8be01a16fde9be6c39e70c5de33edd28d22435b64451"
+    },
+    "/LEVEL2.LEV": {
+      "size": 250526,
+      "sha256": "248b9fee3b73c32db325e3d600af3657232443e2dbefdaae4053e32828444810"
+    },
+    "/LEVEL3.LEV": {
+      "size": 376516,
+      "sha256": "dfef824272debe9cc8d3a8bb0fd3dc028a05a5a81ff114bf93a9885440337945"
+    },
+    "/LEVEL4.LEV": {
+      "size": 322420,
+      "sha256": "2d48bad80bd9c731103b2ec0549d818c80e45e8fead1d3ba5b74a254c92d3665"
+    },
+    "/LEVEL5.LEV": {
+      "size": 388976,
+      "sha256": "983aa2cf36fb414b200da7299902ed32ed241ad2bb6750bb45b6eafbd51294cd"
+    },
+    "/LEVEL6.LEV": {
+      "size": 365746,
+      "sha256": "59be3bada6ec5a87b048b37fba6a4807d9f39a4cd18fe37c8b2fc4670cab2e26"
+    },
+    "/LEVEL7.LEV": {
+      "size": 318018,
+      "sha256": "6be6ef48ff123d454808c5eb27e80fb56fa1f3f9a891f7f3fef2a6a2bb04189f"
+    },
+    "/LEVEL8.LEV": {
+      "size": 245522,
+      "sha256": "474d55dd81aedc26a2e4ebc58c3e32d3ff390ea99ddeb6c63a62ef2df4282944"
+    },
+    "/LEVEL9.LEV": {
+      "size": 290806,
+      "sha256": "b3a6717489b5cde3bd243be339fb5929640167652129a2a0ae49737e3f26c18c"
+    },
+    "/MAINOS.BIN": {
+      "size": 52892,
+      "sha256": "e14a82de8151da5e48f98e55f315ccc56feccf7e9e87c0fb86d2412c0a866a4c"
+    },
+    "/SHELL.BIN": {
+      "size": 352454,
+      "sha256": "e96ddb13dbe99087d1cd526bc15e022ac76c42b2efce14703fef9214ac8193a4"
+    },
+    "/SLIDES.BIN": {
+      "size": 153078,
+      "sha256": "384f23e8ab6d597c4760db3a901e5ca7d9796d6bda651a5e60164caa216c8dd9"
+    },
+    "/TEXT.TXT": {
+      "size": 73,
+      "sha256": "5b30148e7c4a2e7260e63294fe89f9d89a9bd2bed572d1b5250e5a8b6882d139"
+    }
+  }
+}

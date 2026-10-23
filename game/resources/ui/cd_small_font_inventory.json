@@ -1,0 +1,618 @@
+{
+  "schema": 1,
+  "edition": "European Mega CD",
+  "disc_sha256": "fad81e1ffbc4fea03c478e26f6762fe0b24dcf7a81541023466add29ffca2c31",
+  "source_sha256": {
+    "MAINOS.BIN": "e14a82de8151da5e48f98e55f315ccc56feccf7e9e87c0fb86d2412c0a866a4c",
+    "SHELL.BIN": "e96ddb13dbe99087d1cd526bc15e022ac76c42b2efce14703fef9214ac8193a4",
+    "SLIDES.BIN": "384f23e8ab6d597c4760db3a901e5ca7d9796d6bda651a5e60164caa216c8dd9"
+  },
+  "foreground_rgba": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "metrics": {
+    "height": 10,
+    "ascent": 8,
+    "descent": 2,
+    "tracking": 1,
+    "space_advance": 4,
+    "source_pixel_aspect": [
+      7,
+      6
+    ],
+    "space_policy": "Native four-pixel advance; source baked word gaps vary.",
+    "line_advance": 12
+  },
+  "worksheet": {
+    "columns": 16,
+    "cell_size": [
+      20,
+      24
+    ],
+    "origin": [
+      0,
+      32
+    ],
+    "glyph_origin": [
+      4,
+      11
+    ],
+    "glyph_size": [
+      12,
+      10
+    ],
+    "size": [
+      320,
+      208
+    ],
+    "first_codepoint": 32,
+    "last_codepoint": 126
+  },
+  "glyphs": {
+    ",": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          150,
+          6,
+          3,
+          9
+        ]
+      },
+      "advance": 4,
+      "occurrences": 3,
+      "mask_sha256": "1422ac6ba229c8dbbce59f30418d17f2a45880c2d4100b4adcd824694e684d7a",
+      "white_pixels": 4
+    },
+    "-": {
+      "source": {
+        "kind": "weapon",
+        "index": 1,
+        "rect": [
+          27,
+          31,
+          3,
+          9
+        ]
+      },
+      "advance": 4,
+      "occurrences": 2,
+      "mask_sha256": "dec764a3dce3cd247efda7c96f17a69aa177be00eb66038cc3d5d3ccbcb47651",
+      "white_pixels": 3
+    },
+    ".": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          228,
+          159,
+          2,
+          9
+        ]
+      },
+      "advance": 3,
+      "occurrences": 3,
+      "mask_sha256": "6c64ffd7e3191cc6ad18258ede4236682e5b4fcefcf36980ea2f0ad038109dd6",
+      "white_pixels": 2
+    },
+    "1": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          87,
+          159,
+          2,
+          9
+        ]
+      },
+      "advance": 3,
+      "occurrences": 1,
+      "mask_sha256": "d47d06937b27766e595c752a7d2662af5c11c80a62338c9a8fa8e20461e362c5",
+      "white_pixels": 14
+    },
+    "4": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          102,
+          159,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 1,
+      "mask_sha256": "173c6ed285c391354780a1ee70f3d5e41ce229a9b503d3713e3f8ec1b36c3554",
+      "white_pixels": 23
+    },
+    "9": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          90,
+          159,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 2,
+      "mask_sha256": "95d7dba32256fdf0cce0831a4b7e33544999f4876d22f125eabbef10b954af68",
+      "white_pixels": 27
+    },
+    "a": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          31,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 20,
+      "mask_sha256": "15e9ed664057a1b1192250311f06c85f512b06128058f3e40607ee8a04c978a7",
+      "white_pixels": 21
+    },
+    "b": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          113,
+          120,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 8,
+      "mask_sha256": "a14d16a271c4f60ff40db74631a73bef6d8bbbadc1de4e0a9005d0918c332884",
+      "white_pixels": 26
+    },
+    "c": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          37,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 12,
+      "mask_sha256": "f99391f29ce7575a22827b59224ada842a43cb2279a9ca17ca309ce48648c7d7",
+      "white_pixels": 16
+    },
+    "d": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          72,
+          21,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 11,
+      "mask_sha256": "0420c65814fea49a7774e43b1e06d745af9c20ec8ad93235b6148f938becc629",
+      "white_pixels": 26
+    },
+    "e": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          75,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 31,
+      "mask_sha256": "bb7ecbc5868f281bd640688eafcdb7c2f15189e781688c47b473c964ccc4fa68",
+      "white_pixels": 21
+    },
+    "f": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          129,
+          21,
+          4,
+          9
+        ]
+      },
+      "advance": 5,
+      "occurrences": 2,
+      "mask_sha256": "266e5e5aada91a15e34916f0d2f732387697e5587d80e9850c716258e1bd0959",
+      "white_pixels": 17
+    },
+    "g": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          171,
+          21,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 8,
+      "mask_sha256": "1270c9f96df5b9ac0c81bc384a02b5251bc10474dd45823545e6d31dab76cccf",
+      "white_pixels": 29
+    },
+    "h": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          243,
+          134,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 5,
+      "mask_sha256": "b725f2ea6b820d7152f766b87f1e7b39b6712e5bb2fc4f3d4177b3395c7e6707",
+      "white_pixels": 25
+    },
+    "i": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          58,
+          6,
+          2,
+          9
+        ]
+      },
+      "advance": 3,
+      "occurrences": 15,
+      "mask_sha256": "d06b0d242c1226da52633f734ad0e1fa1ca984eca452d0fce018418e003108fc",
+      "white_pixels": 12
+    },
+    "j": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          129,
+          120,
+          4,
+          9
+        ]
+      },
+      "advance": 5,
+      "occurrences": 2,
+      "mask_sha256": "f8f8c86960e28abc10a8a801abc98593ee30089d915e8baf10f8cdc38edba0b4",
+      "white_pixels": 14
+    },
+    "k": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          105,
+          21,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 7,
+      "mask_sha256": "2d6a43b8d626030ae9a809e20cc0f9570c12790dc6919494e8e50faa83e5cdfb",
+      "white_pixels": 24
+    },
+    "l": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          49,
+          6,
+          2,
+          9
+        ]
+      },
+      "advance": 3,
+      "occurrences": 12,
+      "mask_sha256": "d47d06937b27766e595c752a7d2662af5c11c80a62338c9a8fa8e20461e362c5",
+      "white_pixels": 14
+    },
+    "m": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          61,
+          6,
+          8,
+          9
+        ]
+      },
+      "advance": 9,
+      "occurrences": 8,
+      "mask_sha256": "bc51970d50bad30f4ccfb332e8966ccb8bff33c158bd8e721e2d08cea64bc977",
+      "white_pixels": 32
+    },
+    "n": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          81,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 14,
+      "mask_sha256": "a6b18e9d2ca8e1d28abe856143113e696e9f35cf83f2a83d688c757518cfa425",
+      "white_pixels": 21
+    },
+    "o": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          78,
+          21,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 14,
+      "mask_sha256": "6c969e625c74f99ff51d582667c976327fb3590063403f605266209d93d011c5",
+      "white_pixels": 22
+    },
+    "p": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          177,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 6,
+      "mask_sha256": "7eddcaaaecd1e4afb21ed8e0795cc85d9e2f0dfdba178aa3d45ff114068f2a0b",
+      "white_pixels": 26
+    },
+    "r": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          98,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 26,
+      "mask_sha256": "a130e8d009823803b87c2e0e601103664defb19c7b85d34033aaa6b8b9f31ecf",
+      "white_pixels": 13
+    },
+    "s": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          195,
+          6,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 13,
+      "mask_sha256": "960ac1757ef22a3d8b87ef0c1d6bf9d93203d23de55c13461d6a7f9702fe3c4c",
+      "white_pixels": 19
+    },
+    "t": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          87,
+          6,
+          4,
+          9
+        ]
+      },
+      "advance": 5,
+      "occurrences": 16,
+      "mask_sha256": "53a2bfbf3292ceeedc3a69851905c58b4401154df33281804599b771eebe2e60",
+      "white_pixels": 17
+    },
+    "u": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          163,
+          134,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 1,
+      "mask_sha256": "f0171da1c57c749f2ea3a1b41e71ee7e1d3eabc0e61245316ec561f9ce9edcb2",
+      "white_pixels": 21
+    },
+    "v": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          159,
+          168,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 1,
+      "mask_sha256": "5cd57af9c88ee6a20d8882958c5996518e9377ff4c7e5e9f5add73548a526a29",
+      "white_pixels": 18
+    },
+    "w": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          139,
+          21,
+          7,
+          9
+        ]
+      },
+      "advance": 8,
+      "occurrences": 2,
+      "mask_sha256": "366a265488e8e6249005a250435b1b922bf89bd742a5a1b8f7bedd5102bffa69",
+      "white_pixels": 22
+    },
+    "y": {
+      "source": {
+        "kind": "slide",
+        "index": 5,
+        "rect": [
+          119,
+          120,
+          5,
+          9
+        ]
+      },
+      "advance": 6,
+      "occurrences": 6,
+      "mask_sha256": "b565ecf16d7450b3e142df106336d950eb6581a42c806a49e817a10d0dd875fe",
+      "white_pixels": 28
+    }
+  },
+  "missing": [
+    "!",
+    "\"",
+    "#",
+    "$",
+    "%",
+    "&",
+    "'",
+    "(",
+    ")",
+    "*",
+    "+",
+    "/",
+    "0",
+    "2",
+    "3",
+    "5",
+    "6",
+    "7",
+    "8",
+    ":",
+    ";",
+    "<",
+    "=",
+    ">",
+    "?",
+    "@",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "[",
+    "\\",
+    "]",
+    "^",
+    "_",
+    "`",
+    "q",
+    "x",
+    "z",
+    "{",
+    "|",
+    "}",
+    "~"
+  ],
+  "variants": [
+    {
+      "character": "s",
+      "source": {
+        "kind": "weapon",
+        "index": 9,
+        "rect": [
+          9,
+          31,
+          5,
+          9
+        ]
+      },
+      "note": "Spray label has one missing white pixel compared with every title s; retain as reference, not the canonical glyph."
+    }
+  ],
+  "authored_extensions": [
+    "-"
+  ],
+  "authored_asset": {
+    "path": "res://resources/fonts/small_font_additions.png",
+    "sha256": "6a3cc9fa3a44fd9937993d5d782dd8366f2c0ed4f2f29ed5f9252aba10202b83",
+    "author": "Project owner",
+    "approved_line_advance": 12,
+    "new_characters": 65,
+    "supplemented_characters": [
+      "-"
+    ],
+    "white_pixels": 1362,
+    "provenance": "White pixels from the owner-authored GIMP additions layer only. CD source glyph pixels, references, guides and opaque erase marks excluded."
+  }
+}

@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/actors/cd_actor.gd" id="1"]
+
+[node name="CDActor" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Billboard" type="Sprite3D" parent="."]
+layers = 4
+billboard = 2
+texture_filter = 0
+shaded = false
+double_sided = true
+alpha_cut = 0

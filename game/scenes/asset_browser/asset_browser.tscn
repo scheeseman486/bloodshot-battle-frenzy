@@ -1,0 +1,113 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/asset_browser/asset_browser.gd" id="1"]
+
+[node name="OriginalDiscAssets" type="VBoxContainer"]
+custom_minimum_size = Vector2(300, 600)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Heading" type="Label" parent="."]
+layout_mode = 2
+text = "Original Bloodshot disc"
+theme_override_font_sizes/font_size = 22
+
+[node name="Status" type="Label" parent="."]
+layout_mode = 2
+text = "Opening original image…"
+autowrap_mode = 2
+
+[node name="Reload" type="Button" parent="."]
+layout_mode = 2
+text = "Reload original CD"
+
+[node name="Files" type="ItemList" parent="."]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Bytes" type="TextEdit" parent="."]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+editable = false
+wrap_mode = 1
+
+[node name="LayoutLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Diagnostic linear 4bpp preview (unverified)"
+autowrap_mode = 2
+
+[node name="Offset" type="SpinBox" parent="."]
+layout_mode = 2
+max_value = 16777216.0
+prefix = "Byte offset:"
+
+[node name="Layout" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Width" type="SpinBox" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 1024.0
+value = 16.0
+prefix = "W:"
+
+[node name="Height" type="SpinBox" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 1024.0
+value = 16.0
+prefix = "H:"
+
+[node name="Decode" type="Button" parent="."]
+layout_mode = 2
+text = "Preview selected byte span"
+
+[node name="Preview" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Level" type="OptionButton" parent="."]
+layout_mode = 2
+
+[node name="LoadWalls" type="Button" parent="."]
+layout_mode = 2
+text = "View selected level wall textures"
+
+[node name="WallTextures" type="OptionButton" parent="."]
+layout_mode = 2
+
+
+[node name="LoadActors" type="Button" parent="."]
+layout_mode = 2
+text = "View selected level enemy / item / animation sprites"
+
+[node name="ActorFrames" type="OptionButton" parent="."]
+layout_mode = 2
+
+[node name="LoadAudio" type="Button" parent="."]
+layout_mode = 2
+text = "Listen to original effects and CD music"
+
+[node name="LoadUi" type="Button" parent="."]
+layout_mode = 2
+text = "View original HUD, icons, font and minimap"
+
+[node name="UiGraphics" type="OptionButton" parent="."]
+layout_mode = 2
+
+[node name="LoadFrontend" type="Button" parent="."]
+layout_mode = 2
+text = "View original title and frontend slides"
+
+[node name="FrontendGraphics" type="OptionButton" parent="."]
+layout_mode = 2

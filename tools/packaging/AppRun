@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+appdir="${APPDIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
+# The game owns media discovery and first-run import. Preserve only an explicit
+# BLOODSHOT_DISC; never mask its persistent user-folder copy with a mount path.
+exec "$appdir/usr/bin/bloodshot" "$@"

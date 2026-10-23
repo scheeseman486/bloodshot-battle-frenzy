@@ -1,0 +1,974 @@
+{
+  "schema": 1,
+  "records": {
+    "actor": {
+      "owner": "world",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "age": {
+          "type": "s16"
+        },
+        "aim_x": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "aim_y": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "charge": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "cooldown": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "counter": {
+          "type": "s16",
+          "note": "kind-dependent: enemy attack clock or actor payload; retain raw signed word",
+          "replication": "server_only"
+        },
+        "cursor": {
+          "type": "content_id_u32"
+        },
+        "damage": {
+          "type": "s16"
+        },
+        "frame": {
+          "type": "content_id_u32"
+        },
+        "gravity": {
+          "type": "s16"
+        },
+        "health": {
+          "type": "s16"
+        },
+        "height": {
+          "type": "s16"
+        },
+        "impulse_x": {
+          "type": "s16"
+        },
+        "impulse_y": {
+          "type": "s16"
+        },
+        "kind": {
+          "type": "s16"
+        },
+        "launch_angle": {
+          "type": "s16",
+          "note": "Native dynamic field: preserve both its value and optional presence; absent on source records before first native use. Do not invent a default during checkpoint capture."
+        },
+        "player_colour": {
+          "type": "u2",
+          "note": "Optional native presentation metadata: fixed seat colour 0..3. Human proxy owns its assignment; detached corpse retains it; actor birth erases it. Historical/source actors omit it and render original red."
+        },
+        "local_player": {
+          "type": "legacy_bool_int",
+          "note": "Compatibility metadata may be bool or zeroed int after dynamic reset; replace with PlayerRef and local-view membership, never a global local-player bit."
+        },
+        "lost": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "mine_clock": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "owner": {
+          "type": "OwnerRef"
+        },
+        "parameter": {
+          "type": "content_id_u32",
+          "replication": "public",
+          "note": "Original immutable parameter content ID also distinguishes animation events. Clients receive this ID for visual identity, not AI parameter execution."
+        },
+        "phase": {
+          "type": "s16",
+          "replication": "server_only"
+        },
+        "seen": {
+          "type": "optional<PlayerRef>",
+          "replication": "server_only"
+        },
+        "target": {
+          "type": "optional<PlayerRef>",
+          "replication": "server_only"
+        },
+        "timer": {
+          "type": "s16"
+        },
+        "vx": {
+          "type": "s16"
+        },
+        "vy": {
+          "type": "s16"
+        },
+        "wall_cursor": {
+          "type": "optional<WallIndex>",
+          "replication": "server_only"
+        },
+        "x": {
+          "type": "s16"
+        },
+        "y": {
+          "type": "s16"
+        }
+      }
+    },
+    "actor_context": {
+      "owner": "continuation",
+      "full_checkpoint": true,
+      "replication": "omit",
+      "fields": {
+        "angle": {
+          "type": "u14"
+        },
+        "angle_sub": {
+          "type": "u16"
+        },
+        "checkpoint_angle": {
+          "type": "s16"
+        },
+        "checkpoint_x": {
+          "type": "s16"
+        },
+        "checkpoint_y": {
+          "type": "s16"
+        },
+        "contact_attempt": {
+          "type": "s16"
+        },
+        "death_timer": {
+          "type": "s16"
+        },
+        "flash_active": {
+          "type": "s16"
+        },
+        "flash_busy": {
+          "type": "s16"
+        },
+        "flash_callback": {
+          "type": "content_id_u32"
+        },
+        "flash_cursor": {
+          "type": "content_id_u32"
+        },
+        "flash_hold": {
+          "type": "s16"
+        },
+        "flash_word": {
+          "type": "s16"
+        },
+        "forward": {
+          "type": "s16"
+        },
+        "grace": {
+          "type": "s16"
+        },
+        "health": {
+          "type": "s16"
+        },
+        "health_alarm_on": {
+          "type": "s16"
+        },
+        "health_alarm_timer": {
+          "type": "s16"
+        },
+        "health_copy": {
+          "type": "s16"
+        },
+        "health_hit_timer": {
+          "type": "s16"
+        },
+        "impulse_x": {
+          "type": "s16"
+        },
+        "impulse_y": {
+          "type": "s16"
+        },
+        "keys": {
+          "type": "array"
+        },
+        "kill_chain": {
+          "type": "s16"
+        },
+        "lives": {
+          "type": "s16"
+        },
+        "lives_previous": {
+          "type": "s16"
+        },
+        "lives_timer": {
+          "type": "s16"
+        },
+        "map_timer": {
+          "type": "s16"
+        },
+        "message_id": {
+          "type": "content_id_u32",
+          "note": "Runtime StatusOverlay MINE/GET_KEY/BONUS source text IDs; 010c continuation reveals that this is not a signed word."
+        },
+        "message_timer": {
+          "type": "s16"
+        },
+        "panel_phase": {
+          "type": "s16"
+        },
+        "panel_phase_timer": {
+          "type": "s16"
+        },
+        "panel_weapon": {
+          "type": "s16"
+        },
+        "prev_x": {
+          "type": "s16"
+        },
+        "prev_y": {
+          "type": "s16"
+        },
+        "proxy": {
+          "type": "optional<EntityRef>"
+        },
+        "reward_index": {
+          "type": "s16"
+        },
+        "reward_timer": {
+          "type": "s16"
+        },
+        "since_hit": {
+          "type": "s16"
+        },
+        "state": {
+          "type": "s16"
+        },
+        "strafe": {
+          "type": "s16"
+        },
+        "turn": {
+          "type": "s16"
+        },
+        "walk_phase": {
+          "type": "s16"
+        },
+        "wall_cursor": {
+          "type": "optional<WallIndex>"
+        },
+        "weapons": {
+          "type": "record"
+        },
+        "x": {
+          "type": "s16"
+        },
+        "x_sub": {
+          "type": "u18"
+        },
+        "y": {
+          "type": "s16"
+        },
+        "y_sub": {
+          "type": "u18"
+        }
+      },
+      "note": "Keep the complete last actor-pass player context until exact continuation proves it reconstructible. Duplicate aliases are serialized once with explicit bindings."
+    },
+    "boss_clock": {
+      "owner": "world",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "clock": {
+          "type": "s16"
+        },
+        "radius": {
+          "type": "s16"
+        },
+        "speed": {
+          "type": "s16"
+        }
+      }
+    },
+    "door": {
+      "owner": "world",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "fraction": {
+          "type": "s16"
+        },
+        "kind": {
+          "type": "s16"
+        },
+        "state": {
+          "type": "s16"
+        },
+        "timer": {
+          "type": "s16"
+        }
+      }
+    },
+    "encounter": {
+      "owner": "world",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "angular_speed": {
+          "type": "s16"
+        },
+        "bonuses": {
+          "type": "s16"
+        },
+        "countdown": {
+          "type": "s16"
+        },
+        "countdown_boundary": {
+          "type": "s16"
+        },
+        "damage_total": {
+          "type": "u32"
+        },
+        "exit_delay": {
+          "type": "s16"
+        },
+        "gate": {
+          "type": "s16"
+        },
+        "kills": {
+          "type": "s16"
+        },
+        "mode": {
+          "type": "s16"
+        },
+        "remaining": {
+          "type": "s16"
+        },
+        "satellite_rate": {
+          "type": "s16"
+        }
+      }
+    },
+    "fighter": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_only",
+      "fields": {
+        "checkpoint_angle": {
+          "type": "s16"
+        },
+        "checkpoint_x": {
+          "type": "s16"
+        },
+        "checkpoint_y": {
+          "type": "s16"
+        },
+        "death_timer": {
+          "type": "s16",
+          "replication": "public"
+        },
+        "flash_active": {
+          "type": "s16"
+        },
+        "flash_busy": {
+          "type": "s16"
+        },
+        "flash_callback": {
+          "type": "content_id_u32"
+        },
+        "flash_cursor": {
+          "type": "content_id_u32"
+        },
+        "flash_hold": {
+          "type": "s16"
+        },
+        "flash_word": {
+          "type": "s16"
+        },
+        "grace": {
+          "type": "s16",
+          "replication": "public"
+        },
+        "health": {
+          "type": "s16",
+          "replication": "public"
+        },
+        "health_alarm_on": {
+          "type": "s16"
+        },
+        "health_alarm_timer": {
+          "type": "s16"
+        },
+        "health_copy": {
+          "type": "s16"
+        },
+        "health_hit_timer": {
+          "type": "s16"
+        },
+        "impulse_x": {
+          "type": "s16"
+        },
+        "impulse_y": {
+          "type": "s16"
+        },
+        "kill_chain": {
+          "type": "s16"
+        },
+        "lives": {
+          "type": "s16",
+          "replication": "public"
+        },
+        "lives_previous": {
+          "type": "s16"
+        },
+        "lives_timer": {
+          "type": "s16"
+        },
+        "map_timer": {
+          "type": "s16"
+        },
+        "message_id": {
+          "type": "content_id_u32",
+          "note": "Runtime StatusOverlay MINE/GET_KEY/BONUS source text IDs; 010c continuation reveals that this is not a signed word."
+        },
+        "message_timer": {
+          "type": "s16"
+        },
+        "panel_phase": {
+          "type": "s16"
+        },
+        "panel_phase_timer": {
+          "type": "s16"
+        },
+        "panel_weapon": {
+          "type": "s16"
+        },
+        "proxy": {
+          "type": "optional<EntityRef>",
+          "replication": "public"
+        },
+        "reward_index": {
+          "type": "s16"
+        },
+        "reward_timer": {
+          "type": "s16"
+        },
+        "since_hit": {
+          "type": "s16"
+        },
+        "state": {
+          "type": "s16",
+          "replication": "public"
+        }
+      },
+      "note": "Per-player simulation HUD timers/flash are retained despite their visual purpose; GPU/audio playback caches are separate."
+    },
+    "input": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_prediction",
+      "fields": {
+        "edge": {
+          "type": "u32"
+        },
+        "forward": {
+          "type": "s16"
+        },
+        "forward_active": {
+          "type": "s16"
+        },
+        "held": {
+          "type": "u32"
+        },
+        "strafe": {
+          "type": "s16"
+        },
+        "strafe_active": {
+          "type": "s16"
+        },
+        "strafe_mode": {
+          "type": "s16"
+        },
+        "turn": {
+          "type": "s16"
+        },
+        "turn_active": {
+          "type": "s16"
+        },
+        "use_duration": {
+          "type": "s16"
+        },
+        "use_latch": {
+          "type": "s16"
+        }
+      }
+    },
+    "key": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_only",
+      "fields": {
+        "kind": {
+          "type": "s16"
+        },
+        "timer": {
+          "type": "s16"
+        }
+      }
+    },
+    "latch": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_prediction",
+      "fields": {
+        "edge": {
+          "type": "u32"
+        },
+        "held": {
+          "type": "u32"
+        },
+        "previous": {
+          "type": "u32"
+        }
+      }
+    },
+    "motion": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_only",
+      "fields": {
+        "angle": {
+          "type": "u14"
+        },
+        "angle_sub": {
+          "type": "u16"
+        },
+        "contact_attempt": {
+          "type": "s16"
+        },
+        "forward": {
+          "type": "s16"
+        },
+        "prev_x": {
+          "type": "s16"
+        },
+        "prev_y": {
+          "type": "s16"
+        },
+        "state": {
+          "type": "s16"
+        },
+        "strafe": {
+          "type": "s16"
+        },
+        "turn": {
+          "type": "s16"
+        },
+        "walk_phase": {
+          "type": "s16"
+        },
+        "x": {
+          "type": "s16"
+        },
+        "x_sub": {
+          "type": "u18"
+        },
+        "y": {
+          "type": "s16"
+        },
+        "y_sub": {
+          "type": "u18"
+        }
+      },
+      "note": "Merge aliases with fighter by schema, assert state words equal; do not let Dictionary.merge order choose ownership."
+    },
+    "palette": {
+      "owner": "world",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "bank": {
+          "type": "s16"
+        },
+        "phase": {
+          "type": "s16"
+        }
+      },
+      "note": "Global countdown palette phase/bank; combine with each viewer flash independently."
+    },
+    "projectile_launch": {
+      "owner": "presentation",
+      "full_checkpoint": true,
+      "replication": "public",
+      "fields": {
+        "flight_started": {
+          "type": "bool"
+        },
+        "generation": {
+          "type": "u64"
+        },
+        "height": {
+          "type": "s16"
+        },
+        "kind": {
+          "type": "s16"
+        },
+        "x": {
+          "type": "s16"
+        },
+        "y": {
+          "type": "s16"
+        }
+      },
+      "note": "Presentation continuity sidecar; not collision/AI authority. Its generation is NOT the future EntityRef generation."
+    },
+    "visibility_history": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_prediction",
+      "fields": {
+        "bounds": {
+          "type": "array<s16> length 0 or 4"
+        },
+        "range": {
+          "type": "array<s32> length 2"
+        }
+      }
+    },
+    "weapon": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_only",
+      "fields": {
+        "ammo": {
+          "type": "s32_fixed16"
+        },
+        "extra": {
+          "type": "s16"
+        },
+        "kind": {
+          "type": "s16"
+        }
+      }
+    },
+    "weapons": {
+      "owner": "player",
+      "full_checkpoint": true,
+      "replication": "owner_only",
+      "fields": {
+        "buffered": {
+          "type": "s16"
+        },
+        "inventory": {
+          "type": "array"
+        },
+        "manual": {
+          "type": "s16"
+        },
+        "pattern": {
+          "type": "u32"
+        },
+        "selected": {
+          "type": "s16"
+        },
+        "special": {
+          "type": "s16"
+        },
+        "state": {
+          "type": "s16"
+        },
+        "timer": {
+          "type": "s16"
+        }
+      }
+    }
+  },
+  "shell": "e96ddb13dbe99087d1cd526bc15e022ac76c42b2efce14703fef9214ac8193a4",
+  "levels": {
+    "1": "2572692a291e58058809982a2e394e24c442536fa4a837ef61945b2b0f5a9b14",
+    "2": "248b9fee3b73c32db325e3d600af3657232443e2dbefdaae4053e32828444810",
+    "3": "dfef824272debe9cc8d3a8bb0fd3dc028a05a5a81ff114bf93a9885440337945",
+    "4": "2d48bad80bd9c731103b2ec0549d818c80e45e8fead1d3ba5b74a254c92d3665",
+    "5": "983aa2cf36fb414b200da7299902ed32ed241ad2bb6750bb45b6eafbd51294cd",
+    "6": "59be3bada6ec5a87b048b37fba6a4807d9f39a4cd18fe37c8b2fc4670cab2e26",
+    "7": "6be6ef48ff123d454808c5eb27e80fb56fa1f3f9a891f7f3fef2a6a2bb04189f",
+    "8": "474d55dd81aedc26a2e4ebc58c3e32d3ff390ea99ddeb6c63a62ef2df4282944",
+    "9": "b3a6717489b5cde3bd243be339fb5929640167652129a2a0ae49737e3f26c18c",
+    "10": "f8038ef87f17329f4374320db0c7353f030a0cf891b94b03e56e25940396f8fc",
+    "11": "c5a65dd15abba2eb0a80b6dadd496ebf2d91dcbf1f3a6f50a75e7af4e45b4ebc",
+    "12": "7aa84c3940e47257ab26983758493ae4c10ac6af075d07112d4b9e00f26f1b08",
+    "13": "45e10726e26c932f87b50b398df3a72c79b2361e8e6d72649623f9c97dbd4bc9",
+    "14": "c33ec9bb7e72d8d01cd7028f1c13863dca36a3bd35e150e5c4b26b4b47f755f5",
+    "15": "4bd4344cde3cdf374082967c2bda1bc01933dcc4aa3d4d9da186a4fad5c14d01",
+    "16": "29497157d7a458e7acbd8be01a16fde9be6c39e70c5de33edd28d22435b64451"
+  },
+  "rules": "europe-cd-native-six-responsive-v1",
+  "arenas": {
+    "1": "b39bc520f57d963ac5eb915789eaa53bdba89e2b334fecea3fc32a7d7ff98332",
+    "2": "31662ee07ae7df47ce76b3f829f9ef12a51753ba076ca68476aaeaec471386e4",
+    "3": "a967e0adc6a142e87fdfe670ab1c86dc66602676fa79c1563d171f2dd81bc540"
+  },
+  "player_fields": [
+    "id",
+    "generation",
+    "seat",
+    "handle",
+    "motion",
+    "input_state",
+    "fighter",
+    "weapon_state",
+    "keys",
+    "wall_cursor",
+    "_sightings",
+    "_native_keyboard_controls",
+    "_query_remainder",
+    "_door_remainder",
+    "control_scheme",
+    "world_origin"
+  ],
+  "system_fields": [
+    "actors",
+    "active",
+    "movement_seed",
+    "attack_seed",
+    "geometry_remainder",
+    "control_scheme",
+    "demo_mode",
+    "boss_clock",
+    "boss_centre",
+    "encounter",
+    "_update",
+    "_dynamic_start",
+    "epoch",
+    "entity_generations",
+    "player_contexts",
+    "_player_order",
+    "player_proxies",
+    "participant_refs",
+    "player_schemes",
+    "legacy_single_player",
+    "_current_player",
+    "_last_player_state",
+    "projectile_owners",
+    "projectile_launches",
+    "_projectile_generation"
+  ],
+  "world_fields": [
+    "groups",
+    "blocked_doors",
+    "update_count",
+    "countdown_expired",
+    "palette_state",
+    "demo_mode",
+    "demo_actions",
+    "demo_state",
+    "stop_when_exhausted",
+    "_next_player_id",
+    "_seat_generations",
+    "_initial_proxy_claimed",
+    "campaign_state",
+    "presentation_state",
+    "event_sequence",
+    "pending_events",
+    "pending_commands",
+    "accepted_controls",
+    "admission_state"
+  ],
+  "required": {
+    "actor": [
+      "aim_x",
+      "aim_y",
+      "charge",
+      "cooldown",
+      "counter",
+      "cursor",
+      "frame",
+      "health",
+      "height",
+      "impulse_x",
+      "impulse_y",
+      "kind",
+      "lost",
+      "mine_clock",
+      "parameter",
+      "phase",
+      "seen",
+      "target",
+      "timer",
+      "wall_cursor",
+      "x",
+      "y"
+    ],
+    "actor_context": [
+      "angle",
+      "checkpoint_angle",
+      "checkpoint_x",
+      "checkpoint_y",
+      "contact_attempt",
+      "death_timer",
+      "flash_active",
+      "flash_busy",
+      "flash_callback",
+      "flash_cursor",
+      "flash_hold",
+      "flash_word",
+      "forward",
+      "grace",
+      "health",
+      "health_alarm_on",
+      "health_alarm_timer",
+      "health_copy",
+      "health_hit_timer",
+      "impulse_x",
+      "impulse_y",
+      "keys",
+      "kill_chain",
+      "lives",
+      "lives_previous",
+      "lives_timer",
+      "map_timer",
+      "message_id",
+      "message_timer",
+      "panel_phase",
+      "panel_phase_timer",
+      "panel_weapon",
+      "prev_x",
+      "prev_y",
+      "proxy",
+      "reward_index",
+      "reward_timer",
+      "since_hit",
+      "state",
+      "strafe",
+      "turn",
+      "walk_phase",
+      "wall_cursor",
+      "weapons",
+      "x",
+      "y"
+    ],
+    "boss_clock": [
+      "clock",
+      "radius",
+      "speed"
+    ],
+    "door": [
+      "fraction",
+      "kind",
+      "state",
+      "timer"
+    ],
+    "encounter": [
+      "angular_speed",
+      "bonuses",
+      "countdown",
+      "countdown_boundary",
+      "damage_total",
+      "exit_delay",
+      "gate",
+      "kills",
+      "mode",
+      "remaining",
+      "satellite_rate"
+    ],
+    "fighter": [
+      "checkpoint_angle",
+      "checkpoint_x",
+      "checkpoint_y",
+      "death_timer",
+      "flash_active",
+      "flash_busy",
+      "flash_callback",
+      "flash_cursor",
+      "flash_hold",
+      "flash_word",
+      "grace",
+      "health",
+      "health_alarm_on",
+      "health_alarm_timer",
+      "health_copy",
+      "health_hit_timer",
+      "impulse_x",
+      "impulse_y",
+      "kill_chain",
+      "lives",
+      "lives_previous",
+      "lives_timer",
+      "map_timer",
+      "message_id",
+      "message_timer",
+      "panel_phase",
+      "panel_phase_timer",
+      "panel_weapon",
+      "proxy",
+      "reward_index",
+      "reward_timer",
+      "since_hit",
+      "state"
+    ],
+    "input": [
+      "edge",
+      "forward",
+      "forward_active",
+      "held",
+      "strafe",
+      "strafe_active",
+      "strafe_mode",
+      "turn",
+      "turn_active",
+      "use_duration",
+      "use_latch"
+    ],
+    "key": [
+      "kind",
+      "timer"
+    ],
+    "latch": [
+      "edge",
+      "held",
+      "previous"
+    ],
+    "motion": [
+      "angle",
+      "contact_attempt",
+      "forward",
+      "state",
+      "strafe",
+      "turn",
+      "walk_phase",
+      "x",
+      "y"
+    ],
+    "palette": [
+      "bank",
+      "phase"
+    ],
+    "projectile_launch": [
+      "flight_started",
+      "generation",
+      "height",
+      "kind",
+      "x",
+      "y"
+    ],
+    "visibility_history": [
+      "bounds",
+      "range"
+    ],
+    "weapon": [
+      "ammo",
+      "extra",
+      "kind"
+    ],
+    "weapons": [
+      "buffered",
+      "inventory",
+      "manual",
+      "pattern",
+      "selected",
+      "special",
+      "state",
+      "timer"
+    ]
+  }
+}

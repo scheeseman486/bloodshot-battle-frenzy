@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/settings/display_options.gd" id="1"]
+
+[node name="DisplayOptions" type="VBoxContainer"]
+script = ExtResource("1")
+
+[node name="Widescreen" type="CheckButton" parent="."]
+layout_mode = 2
+focus_mode = 0
+text = "Widescreen view (F10)"
+
+[node name="Fullscreen" type="CheckButton" parent="."]
+layout_mode = 2
+focus_mode = 0
+text = "Fullscreen (F11)"

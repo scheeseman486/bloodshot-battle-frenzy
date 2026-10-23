@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Bloodshot / Battle Frenzy
+Comment=Native game reconstruction; requires your original European Mega CD image
+Exec=bloodshot
+Icon=bloodshot
+Terminal=false
+Categories=Game;ActionGame;
