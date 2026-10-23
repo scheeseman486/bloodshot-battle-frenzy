@@ -92,3 +92,12 @@ CD editor dock, which reads assets from the developer's own game image.
 - Restored the level-completion music and kept it playing through co-op results.
   Music playback remains independent on each client.
 - Clarified the opening notice to say "This port is not licensed".
+
+## Input and performance fixes
+
+- Capture the mouse when entering gameplay from the menu in a focused window.
+- Keep mouse aiming responsive without running simulation, targeting or collision
+  work for every mouse report, in offline and online play.
+- Avoid unnecessary lock-on visibility work while preserving target selection.
+- Reduce explosion/mine knockback collision work and reuse checked camera paths
+  for the affected player and multiplayer observers.

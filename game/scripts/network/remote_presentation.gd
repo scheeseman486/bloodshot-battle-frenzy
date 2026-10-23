@@ -7,6 +7,7 @@ const STEP_USEC := 1070460000000.0 / 212813696.0
 const CLOCK_RATE_LIMIT := 0.1
 const ProjectilePath = preload("res://scripts/presentation/cd_projectile_motion_path.gd")
 var _human_corrections: Dictionary = {}
+var _human_hit_paths: Dictionary = {}
 var state: Dictionary = {}
 var definition: RefCounted
 var elapsed_usec := 0
@@ -42,7 +43,12 @@ func install(snapshot: Dictionary, content: RefCounted, server_tick: float = -1.
 		_generations = []
 		_flight_continuations.clear()
 		_human_corrections.clear()
+		_human_hit_paths.clear()
 	state = snapshot if snapshot.is_read_only() else snapshot.duplicate(true)
+	var proxies: Array = state.roster.map(func(row: Dictionary) -> int: return int(row.proxy))
+	for proxy: int in _human_hit_paths.keys():
+		if proxy not in proxies:
+			_human_hit_paths.erase(proxy)
 	definition = content
 	for slot: int in _flight_continuations.keys():
 		var cached: Dictionary = _flight_continuations[slot]
@@ -318,9 +324,13 @@ func _human_pose(row: Dictionary, snapshot: Dictionary) -> Dictionary:
 	# A packet gap may finish this known displacement, but cannot restart it
 	# or invent another impulse. New publications supply the next decay state.
 	var boundary := floorf(float(snapshot.revision) / 24.0) * 24.0
+	var proxy := int(row.proxy)
+	if not _human_hit_paths.has(proxy):
+		_human_hit_paths[proxy] = {}
 	return HitFilter.preview(
 		pose, snapshot.records.actor_system.actors[int(row.proxy)],
-		clampf((estimated_tick - boundary) / 24.0, 0.0, 1.0), query
+		clampf((estimated_tick - boundary) / 24.0, 0.0, 1.0), query,
+		[definition.level, _collision.fractions, cursor[0]], _human_hit_paths[proxy]
 	)
 
 

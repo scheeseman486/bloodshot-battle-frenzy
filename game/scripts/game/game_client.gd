@@ -88,7 +88,8 @@ func presentation_pose() -> Dictionary:
 	_view_collision.fractions = session.groups.map(func(group: Dictionary) -> int: return int(group.fraction))
 	pose = preload("res://scripts/presentation/knockback_filter.gd").preview(
 		pose, session.fighter, phase,
-		func(point: Vector2i) -> Dictionary: return _view_collision.query(point)
+		func(point: Vector2i) -> Dictionary: return _view_collision.query(point),
+		[session.level, _view_collision.fractions], _knockback_view.path_cache
 	)
 	return _knockback_view.sample(
 		pose, animation_time * 1070460.0 / 53203424.0,

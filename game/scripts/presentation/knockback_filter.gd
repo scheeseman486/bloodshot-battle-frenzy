@@ -7,6 +7,8 @@ var _error := Vector2.ZERO
 var _time := -1.0
 var _identity: Array = []
 var _active := false
+# One private trajectory, invalidated by pose, impulse, level or moving walls.
+var path_cache: Dictionary = {}
 
 
 func sample(pose: Dictionary, seconds: float, active: bool, identity: Array, query: Callable) -> Dictionary:
@@ -43,13 +45,25 @@ func sample(pose: Dictionary, seconds: float, active: bool, identity: Array, que
 ## An already confirmed impulse has a deterministic next displacement. Draw
 ## that collision-checked path throughout its world interval, rather than
 ## waiting for another coarse shove and easing the resulting position jump.
-static func preview(pose: Dictionary, impulse: Dictionary, fraction: float, query: Callable) -> Dictionary:
+static func preview(
+	pose: Dictionary, impulse: Dictionary, fraction: float, query: Callable,
+	geometry: Array = [], cache: Dictionary = {}
+) -> Dictionary:
 	var result := pose.duplicate()
 	if int(pose.get("state", 1)) not in [1, 3]:
 		return result
 	var start := {"x": int(pose.x), "y": int(pose.y), "impulse_x": int(impulse.get("impulse_x", 0)), "impulse_y": int(impulse.get("impulse_y", 0))}
-	var path: Array = []
-	preload("res://scripts/simulation/cd_player_impulse.gd").advance_native(start, 6, query, path)
+	if int(start.impulse_x) == 0 and int(start.impulse_y) == 0:
+		return result
+	# Render fractions and heading do not change the checked trajectory. Reuse
+	# it until a physical input changes, rather than re-sweeping every draw.
+	var key := [start, geometry]
+	if cache.get("key", []) != key:
+		var vertices: Array = []
+		preload("res://scripts/simulation/cd_player_impulse.gd").advance_native(start, 6, query, vertices)
+		cache.key = key.duplicate(true)
+		cache.path = vertices
+	var path: Array = cache.path
 	var phase := clampf(fraction, 0.0, 1.0) * float(path.size() - 1)
 	var index := mini(int(phase), path.size() - 1)
 	var next := mini(index + 1, path.size() - 1)

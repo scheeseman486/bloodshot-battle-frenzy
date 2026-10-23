@@ -568,26 +568,26 @@ func _weapon_target() -> Dictionary:
 	var player := {
 		"x": motion.x, "y": motion.y, "view_angle": ((int(motion.angle) >> 6) + 64) & 255
 	}
-	var candidates: Array = actor_visibility.sightings()
 	var versus: bool = not world.vs_state.is_empty()
 	var view: Dictionary = {}
-	if versus:
-		view = actor_visibility.world_query()
-		for proxy: int in actor_system.player_proxies.values():
-			if proxy >= 0: candidates.append(proxy)
-		candidates.sort()  # Keep the source pool order for equal projected offsets.
-	for index: int in candidates:
+	# Reject ineligible/off-axis points before building source wall visibility.
+	# Ascending pool order preserves the original equal-offset tie rule.
+	for index: int in range(actor_system.actors.size()):
+		var kind := int(actor_system.actors[index].kind)
+		if not (kind >= 1 and kind <= 19) and not (versus and kind == 20):
+			continue
 		var actor := _lock_on_actor(index)
 		if actor.is_empty(): continue
-		if int(actor.kind) == 20:
-			var visibility := VisibilityQuery.actor(actor, player, tables, actor_system.catalog, view)
-			if not visibility.visible:
-				continue
-		elif int(actor.target) == -1:
+		if kind != 20 and int(actor.target) == -1:
 			continue
 		var offset := SpecialWeapon.projected_offset(player, actor, tables, 80)
-		if absi(offset) <= int(result.hit_flag):
-			result.hit_offset = offset
+		if absi(offset) > int(result.hit_flag):
+			continue
+		if view.is_empty():
+			view = actor_visibility.world_query()
+		if not VisibilityQuery.actor(actor, player, tables, actor_system.catalog, view).visible:
+			continue
+		result.hit_offset = offset
 		result = SpecialWeapon.select_candidate(result, offset, index)
 	return result
 

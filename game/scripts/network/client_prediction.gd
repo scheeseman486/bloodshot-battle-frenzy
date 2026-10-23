@@ -247,7 +247,8 @@ func presentation_pose() -> Dictionary:
 	_camera_collision.axis_remainder = null
 	pose = preload("res://scripts/presentation/knockback_filter.gd").preview(
 		pose, _impulse, (float(tick % 24) + float(phase) / T) / 24.0,
-		func(point: Vector2i) -> Dictionary: return _camera_collision.query(point, _cursor)
+		func(point: Vector2i) -> Dictionary: return _camera_collision.query(point, _cursor),
+		[definition.level, _camera_collision.fractions, _cursor], _knockback_view.path_cache
 	)
 	return _knockback_view.sample(
 		pose, (float(tick) + float(phase) / T) * STEP_USEC / 1000000.0,

@@ -15,8 +15,16 @@ func query(target: Vector2i, cursor: int = 0, initial_radius: int = 100) -> Dict
 	# Retain the source search cursor and its precise equality rules. Wall order
 	# matters at corners; do not replace it with Godot's floating-point physics.
 	if lower > int(walls[cursor].start.y):
-		while cursor < walls.size() - 1 and lower > int(walls[cursor].start.y):
-			cursor += 1
+		# Original walls are ordered by start Y. Find exactly the first wall
+		# the source forward scan would reach, retaining equality and end rules.
+		# Repeated swept-hit queries otherwise walk most of the map each time.
+		var high := walls.size() - 1
+		while cursor < high:
+			var middle := (cursor + high) >> 1
+			if lower > int(walls[middle].start.y):
+				cursor = middle + 1
+			else:
+				high = middle
 	else:
 		while cursor > 0:
 			cursor -= 1

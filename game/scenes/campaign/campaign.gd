@@ -48,6 +48,9 @@ var actor_animations := (
 var _previous_accumulation := true
 var _previous_mouse_mode := Input.MOUSE_MODE_VISIBLE
 var _resume_capture := false
+# Quantized local look waits for the next frame/button boundary. Raw reports
+# update heading only; they never run combat, visibility or replica publication.
+var _pending_mouse_aim := 0
 var _game_over_presented: bool:
 	get:
 		return server.campaign._game_over_presented
@@ -104,7 +107,9 @@ func _ready() -> void:
 	$Overlay/Panel/Content/Restart.pressed.connect(restart)
 	driver.updated.connect(_updated)
 	$BillboardPass.configure($Player/Camera)
-	Input.use_accumulated_input = false
+	# Preserve the complete mouse displacement, but service expensive authority
+	# and lock-on views once per drawn frame rather than once per device report.
+	Input.use_accumulated_input = true
 	get_window().focus_exited.connect(_focus_lost)
 	var initial := int(get_tree().get_meta("campaign_level", 1))
 	score_eligible = initial == 1 and bool(get_tree().get_meta("campaign_score_eligible", true))
@@ -122,6 +127,7 @@ func load_level(number: int, carry: Dictionary = {}) -> bool:
 		return false
 	_close_pause_view()
 	native_controls.clear()
+	_pending_mouse_aim = 0
 	ready_to_play = false
 	$Audio.stop_all()
 	$Overlay/Panel.visible = true
@@ -172,6 +178,12 @@ func load_level(number: int, carry: Dictionary = {}) -> bool:
 	$Overlay/Panel/Content/Status.text = "LEVEL%d · European CD" % level_number
 	_previous_usec = Time.get_ticks_usec()
 	_updated()
+	if (
+		driver.recording.is_empty()
+		and DisplayServer.get_name() != "headless"
+		and get_window().has_focus()
+	):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	return true
 
 
@@ -253,6 +265,9 @@ func _advance_to_now() -> void:
 	_previous_usec = now
 	if ready_to_play and not paused and not _transition_pending and not session.is_game_over():
 		driver.advance_usec(elapsed)
+		if _pending_mouse_aim != 0:
+			driver.aim_units(float(_pending_mouse_aim) / 65536.0)
+			_pending_mouse_aim = 0
 
 
 func _process(_delta: float) -> void:
@@ -296,18 +311,21 @@ func _input(event: InputEvent) -> void:
 		and event is InputEventMouseMotion
 		and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	):
-		# Finish elapsed work with the old aim before applying the new event.
-		# A late input event never rewrites a completed combat update.
-		_advance_to_now()
 		_aim_mouse(event.screen_relative.x)
 		get_viewport().set_input_as_handled()
 
 
 func _aim_mouse(horizontal_pixels: float) -> void:
-	driver.aim_units(horizontal_pixels * mouse_degrees_per_pixel * 16384.0 / 360.0)
-	# Raw input can arrive faster than drawing. Actors/doors present once per frame.
-	$Player.present(driver.player_pose(), $World)
-	$BillboardPass.sync_camera()
+	if int(session.fighter.state) not in [1, 3]:
+		return
+	var delta := horizontal_pixels * mouse_degrees_per_pixel * 16384.0 / 360.0
+	var fixed := roundi(fmod(delta, 16384.0) * 65536.0)
+	_pending_mouse_aim = (_pending_mouse_aim + fixed) % 1073741824
+	var angle: float = float(client.player_pose().angle) + float(_pending_mouse_aim) / 65536.0
+	$Player.rotation.y = -fposmod(angle, 16384.0) * TAU / 16384.0
+	# Both native views rotate immediately; projection/viewport work stays in
+	# the regular billboard pass rather than being repeated for each report.
+	$BillboardPass/View/Camera.global_transform = $Player/Camera.global_transform
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -559,9 +577,11 @@ func _present(phase: float = -1.0) -> void:
 	)
 	$World.set_palette_bank(int(view.palette_state.bank))
 	$World.palette.set_player_flash(int(view.fighter.get("flash_word", -1)))
-	$OriginalHud/Hud.present(view, driver.player_pose(), driver.animation_frame_time())
+	# HUD and camera share one collision-checked knockback sample for this frame.
+	var pose: Dictionary = driver.player_pose()
+	$OriginalHud/Hud.present(view, pose, driver.animation_frame_time())
 	$Player.set_view_rect($OriginalHud/Hud.view_rect, $OriginalHud/Hud.widescreen)
-	$Player.present(driver.player_pose(), $World)
+	$Player.present(pose, $World)
 	$World.set_door_states(
 		view.groups, door_motion.sample(view.groups, driver.animation_frame_time())
 	)

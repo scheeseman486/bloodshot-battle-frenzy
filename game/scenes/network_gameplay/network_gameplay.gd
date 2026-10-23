@@ -21,6 +21,7 @@ var _previous_accumulation := true
 var _configured_level := ""
 var _host_menu_pending := false
 var _admin_commands: Array = []
+var _pending_mouse_aim := 0
 
 
 func _ready() -> void:
@@ -29,7 +30,7 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_devices_changed)
 	_previous_mouse = Input.mouse_mode
 	_previous_accumulation = Input.use_accumulated_input
-	Input.use_accumulated_input = false
+	Input.use_accumulated_input = true
 	# A lobby starts with a visible menu. Background/unfocused windows must not
 	# steal pointer capture from another game/editor instance.
 	var opening: Dictionary = get_tree().get_meta("network_request", {})
@@ -150,6 +151,7 @@ func _joined() -> void:
 			$OriginalHud/Hud.ui, $World.source.load_cd_small_font().native_font()
 		)
 	if _configured_epoch != int(endpoint.epoch):
+		_pending_mouse_aim = 0
 		# Open only the listen host's menu on a new lobby world. A same-epoch
 		# recovery must not reopen a menu the host has already resumed from.
 		if _configured_epoch >= 0 and host_endpoint != null:
@@ -161,6 +163,7 @@ func _joined() -> void:
 		if ready_to_play:
 			$Audio.start_campaign($World.level, _entry_audio_allowed())
 	if _configured_token != int(endpoint.token):
+		_pending_mouse_aim = 0
 		_configured_token = int(endpoint.token)
 		_close_card()
 		controls.clear()  # A new seat or map requires fresh physical input.
@@ -205,6 +208,8 @@ func _process(_delta: float) -> void:
 		return
 	_advance_host()
 	var now := Time.get_ticks_usec()
+	endpoint.advance_local_view(now)
+	_flush_mouse_look()
 	endpoint.pump(now / 1000, now)
 	if endpoint.phase != "live":
 		$OriginalHud/LiveScores.hide()
@@ -320,20 +325,24 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion:
 		if _look_pointer_captured():
-			# Rotate from local input now. The regular frame services authority and
-			# packets; neither can block each individual raw mouse sample here.
-			endpoint.advance_local_view(Time.get_ticks_usec())
+			# Raw reports rotate both views only. Clock stepping, prediction input,
+			# collision and packet construction belong to frame/button boundaries.
 			var aim: float = (
 				event.screen_relative.x
 				* float(settings.values.mouse_degrees_per_pixel)
 				* 16384.0 / 360.0
 			)
-			endpoint.client.command(controls.packet(true), controls.aim_units_per_second(true), [aim])
-			$Player.present(endpoint.prediction.presentation_pose(), $World)
-			$BillboardPass.sync_camera()
+			if int(endpoint.prediction.player_pose().get("state", 0)) not in [1, 3]:
+				return
+			_pending_mouse_aim = (_pending_mouse_aim + roundi(fmod(aim, 16384.0) * 65536.0)) % 1073741824
+			var angle: float = float(endpoint.prediction.player_pose().angle) + float(_pending_mouse_aim) / 65536.0
+			$Player.rotation.y = -fposmod(angle, 16384.0) * TAU / 16384.0
+			$BillboardPass/View/Camera.global_transform = $Player/Camera.global_transform
 		return
 	_advance_host()
 	var now := Time.get_ticks_usec()
+	endpoint.advance_local_view(now)
+	_flush_mouse_look()
 	endpoint.pump(now / 1000, now)  # Elapsed movement always uses the old event.
 	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
 		controls.clear()
@@ -360,8 +369,19 @@ func _input(event: InputEvent) -> void:
 		_present_scores()
 
 
+func _flush_mouse_look() -> void:
+	if _pending_mouse_aim == 0:
+		return
+	if endpoint.phase != "live" or not ready_to_play or is_instance_valid(_menu) or is_instance_valid(_card):
+		_pending_mouse_aim = 0
+		return
+	if endpoint.client.command(controls.packet(true), controls.aim_units_per_second(true), [float(_pending_mouse_aim) / 65536.0]):
+		_pending_mouse_aim = 0
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and ready_to_play:
+		_pending_mouse_aim = 0
 		$OriginalHud/LiveScores.hide()
 		controls.clear()
 		endpoint.client.command({"held": 0xffffffff, "strafe": 0})
@@ -375,6 +395,7 @@ func _projection_changed() -> void:
 
 
 func _fail(reason: String) -> void:
+	_pending_mouse_aim = 0
 	last_error = reason
 	ready_to_play = false
 	controls.clear()

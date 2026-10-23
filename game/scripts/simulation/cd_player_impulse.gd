@@ -35,6 +35,15 @@ static func advance(state: Dictionary, elapsed: int, query: Callable) -> Diction
 ## Reference execution continues to use advance() above. Optional path vertices
 ## belong to the caller's presentation copy, never authoritative state.
 static func advance_native(state: Dictionary, elapsed: int, query: Callable, path: Array = []) -> Dictionary:
+	# The query is pure for this sweep. Adjacent steps, projected corrections
+	# and axis fallbacks often revisit the same point; check it only once.
+	# Keep this cache local so a later door/world change always gets fresh checks.
+	var contacts := {}
+	var uncached := query
+	query = func(point: Vector2i) -> Dictionary:
+		if not contacts.has(point):
+			contacts[point] = uncached.call(point)
+		return contacts[point]
 	var result := advance(state, elapsed, func(point: Vector2i) -> Dictionary:
 		return {"target": point, "blocked": false}
 	)
