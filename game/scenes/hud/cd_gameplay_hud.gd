@@ -375,9 +375,8 @@ func _draw() -> void:
 		_frame_piece(Rect2i(144, 1, 110, 1), Vector2(144, 61))
 	_set_group_transform("map")
 	if _map_texture != null:
-		# The original formatter replaces this part of the world image. Index
-		# zero must cover the native world beneath the map, not reveal it.
-		draw_rect(Rect2(192, 64, 48, 40), Color.BLACK)
+		# Keep the decoded artwork's cutouts; source ink remains opaque while
+		# transparent texels reveal the native world behind this overlay.
 		if int(_session.fighter.map_timer) != 0:
 			if int(_session.fighter.panel_weapon) >= 0:
 				draw_texture(
@@ -423,12 +422,8 @@ func _draw() -> void:
 
 
 func _draw_wide_frame() -> void:
-	# Reserve opaque panel interiors FIRST. Individual source patches keep their
-	# transparency so overlapping rims reproduce the composition's layer order.
-	draw_set_transform(Vector2.ZERO)
-	for group: String in Layout.panel_rects(display_layout):
-		if group != "map":
-			draw_rect(Layout.panel_rects(display_layout)[group], Color.BLACK)
+	# Source patches retain their alpha, including holes between rims. Do not
+	# flatten corner panels onto an extra black rectangle over the live world.
 	for group: String in ["keys", "weapons", "ammo"]:
 		_set_group_transform(group)
 		if group == "weapons" and display_layout.compact_weapons:

@@ -101,3 +101,8 @@ CD editor dock, which reads assets from the developer's own game image.
 - Avoid unnecessary lock-on visibility work while preserving target selection.
 - Reduce explosion/mine knockback collision work and reuse checked camera paths
   for the affected player and multiplayer observers.
+
+## HUD fixes
+
+- Preserve transparent minimap/card pixels and widescreen HUD frame cutouts.
+- Restore the original upper-left and upper-right corner tiles in the 4:3 frame.

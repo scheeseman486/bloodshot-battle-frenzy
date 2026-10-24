@@ -120,8 +120,9 @@ func frame(indexed: bool = false) -> Texture2D:
 	var image := Image.create_empty(256, 224, false, Image.FORMAT_RGBA8)
 	for y: int in range(28):
 		for x: int in range(32):
-			# The source's window region belongs to the native 3D camera.
-			if VIEW_RECT.has_point(Vector2i(x * 8, y * 8)):
+			# Leave the world window empty except its two original upper corner
+			# overlays: tile 68 at (3,8), horizontally mirrored at (30,8).
+			if VIEW_RECT.has_point(Vector2i(x * 8, y * 8)) and not (y == 8 and x in [3, 30]):
 				continue
 			var word := Data._u16(_shell, 0x33cc4 + (y * 32 + x) * 2)
 			var tile := _tile(
