@@ -15,6 +15,10 @@ var _text_static_tick := 0
 var _background_palette := preload("res://scripts/presentation/cd_menu_palette.gd").new()
 
 
+func _enter_tree() -> void:
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(self)
+
+
 func switch_scene(path: String) -> void:
 	if _transitioning:
 		return
@@ -34,7 +38,7 @@ func mount_frontend(already_mounted: bool = false) -> bool:
 	if catalog == null:
 		show_error(source.last_error)
 		return false
-	preload("res://scripts/audio/cd_audio_settings.gd").set_source_mode(
+	preload("res://scripts/audio/cd_audio_settings.gd").restore_user_mix(
 		int(Settings.values().sound)
 	)
 	material = ShaderMaterial.new()
@@ -97,11 +101,9 @@ func update_background(tick: float, smooth_ticks: float = -1.0) -> void:
 
 
 func show_error(message: String) -> void:
-	var label := Label.new()
-	label.text = message + "\nSupply the original European CD via --disc or project settings."
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(label)
+	# This path precedes a usable media/font catalog, just like disc import.
+	if DisplayServer.get_name() != "headless":
+		OS.alert(message + "\nSelect a supported original European Mega CD image.", "Bloodshot / Battle Frenzy")
 	push_error(message)
 
 

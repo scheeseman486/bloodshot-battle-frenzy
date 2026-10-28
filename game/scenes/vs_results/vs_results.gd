@@ -1,7 +1,7 @@
 extends Control
 const ParticipantLabels = preload("res://scripts/presentation/participant_labels.gd")
 ## Frozen authority standings over the game, using the existing menu's source
-## bitmap font and transparent source skulls. Only the host exposes round verbs.
+## bitmap font and transparent source skulls. Host/admin capability exposes round verbs.
 signal completed(action: String)
 signal menu_requested
 const Colours = preload("res://scripts/presentation/player_colours.gd")
@@ -21,6 +21,10 @@ var _actions: Array = []
 var _scale := Vector2.ONE
 
 
+func _enter_tree() -> void:
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(self)
+
+
 func configure(ui: RefCounted, font: Font) -> void:
 	_canvas = Control.new()
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -33,15 +37,33 @@ func configure(ui: RefCounted, font: Font) -> void:
 		if a.kills != b.kills: return a.kills > b.kills
 		if a.deaths != b.deaths: return a.deaths < b.deaths
 		return a.reference.id < b.reference.id)
-	_actions = ["rematch", "lobby"] if host else []
 	_rebuild()
-	if host:
+	_sync_actions()
+	_layout()
+
+
+func set_host_controls(enabled: bool) -> void:
+	if host == enabled: return
+	host = enabled
+	if is_instance_valid(_canvas):
+		_rebuild()
+		_sync_actions()
+		_layout()
+
+
+func _sync_actions() -> void:
+	_actions = ["rematch", "lobby"] if host else []
+	if not host and is_instance_valid(_action_menu):
+		_action_menu.hide()
+		_action_menu.process_mode = Node.PROCESS_MODE_DISABLED
+		_action_menu.queue_free()
+		_action_menu = null
+	if host and not is_instance_valid(_action_menu):
 		_action_menu = preload("res://scenes/pause_menu/pause_navigation.tscn").instantiate()
 		_action_menu.set_script(preload("res://scenes/vs_results/vs_result_actions.gd"))
 		_action_menu.completed.connect(func(action): completed.emit(action))
 		_action_menu.back_requested.connect(func(): menu_requested.emit())
 		add_child(_action_menu)
-	_layout()
 
 
 func _ready() -> void:

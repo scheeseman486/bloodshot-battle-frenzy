@@ -2,7 +2,7 @@ class_name CdInputSettings
 extends RefCounted
 ## Versioned native gameplay preferences. No InputMap or editor settings mutate.
 ## Apply validates the entire patch and writes atomically before publishing it.
-const VERSION := 1
+const VERSION := 2
 const MAX_BYTES := 65536
 var values: Dictionary
 var last_error := ""
@@ -25,15 +25,21 @@ func _init(save_path: String = "user://controls.json", legacy_diagonals: int = 1
 		last_error = "Malformed controls JSON. Defaults retained."
 		return
 	var parsed: Variant = decoder.data
-	if not parsed is Dictionary or parsed.get("version") != VERSION:
+	if (
+		not parsed is Dictionary
+		or not _number(parsed.get("version"))
+		or float(parsed.version) not in [1.0, float(VERSION)]
+	):
 		last_error = "Unsupported or corrupt controls file. Defaults retained."
 		return
+	if parsed.version == 1:
+		parsed = _migrate(parsed)
 	parsed.erase("version")
 	apply(parsed, false)
 
 
 static func defaults() -> Dictionary:
-	return {
+	var result := {
 		"mouse_degrees_per_pixel": 0.12,
 		"diagonals": 1,
 		"gamepad_degrees_per_second": 180.0,
@@ -54,7 +60,9 @@ static func defaults() -> Dictionary:
 				{"kind": "mouse", "code": MOUSE_BUTTON_LEFT},
 				_axis(JOY_AXIS_TRIGGER_RIGHT, 1)
 			],
-			"cycle_weapon": [_key(KEY_Q), _joy(JOY_BUTTON_LEFT_SHOULDER), _joy(JOY_BUTTON_X)],
+			"next_weapon":
+			[_key(KEY_Q), _mouse(MOUSE_BUTTON_WHEEL_DOWN), _joy(JOY_BUTTON_RIGHT_SHOULDER)],
+			"previous_weapon": [_mouse(MOUSE_BUTTON_WHEEL_UP), _joy(JOY_BUTTON_LEFT_SHOULDER)],
 			"use": [_key(KEY_E), _joy(JOY_BUTTON_A)],
 			"pause": [_key(KEY_ENTER), _joy(JOY_BUTTON_START)],
 			"scores": [_key(KEY_TAB)],
@@ -62,6 +70,42 @@ static func defaults() -> Dictionary:
 			"look_right": [_axis(JOY_AXIS_RIGHT_X, 1)]
 		}
 	}
+	for slot: int in range(1, 10):
+		result.bindings["weapon_slot_%d" % slot] = [_key(KEY_0 + slot)]
+	return result
+
+
+static func _migrate(old: Dictionary) -> Dictionary:
+	var result := old.duplicate(true)
+	if not result.get("bindings") is Dictionary:
+		return result
+	var bindings: Dictionary = result.bindings
+	# JSON numbers are floats. Normalize validated integral binding codes before
+	# comparing old defaults or checking conflicts with newly introduced inputs.
+	for entries: Variant in bindings.values():
+		if not entries is Array:
+			continue
+		for binding: Variant in entries:
+			if _valid_binding(binding):
+				binding.code = int(binding.code)
+				if binding.kind == "joy_axis":
+					binding.sign = int(binding.sign)
+	var legacy: Array = [_key(KEY_Q), _joy(JOY_BUTTON_LEFT_SHOULDER), _joy(JOY_BUTTON_X)]
+	if bindings.has("cycle_weapon"):
+		var previous: Variant = bindings.cycle_weapon
+		bindings.erase("cycle_weapon")
+		bindings.next_weapon = defaults().bindings.next_weapon if previous == legacy else previous
+	# Newly introduced bindings must not silently conflict with an old remap.
+	var occupied: Array = []
+	for entries: Variant in bindings.values():
+		if entries is Array:
+			occupied.append_array(entries)
+	for action: String in defaults().bindings:
+		if not bindings.has(action):
+			bindings[action] = defaults().bindings[action].filter(
+				func(binding): return binding not in occupied
+			)
+	return result
 
 
 func apply(patch: Dictionary, persist: bool = true) -> Error:
@@ -81,7 +125,7 @@ func apply(patch: Dictionary, persist: bool = true) -> Error:
 				):
 					return _invalid("Unknown action or invalid binding list: %s" % str(action))
 				for binding: Variant in entries:
-					if not _valid_binding(binding):
+					if not valid_action_binding(String(action), binding):
 						return _invalid("Invalid binding for %s" % str(action))
 				candidate.bindings[action] = entries.duplicate(true)
 				for binding: Dictionary in candidate.bindings[action]:
@@ -161,13 +205,15 @@ static func _valid_binding(value: Variant) -> bool:
 				and code not in [KEY_ESCAPE, KEY_F10, KEY_F11, KEY_F12]
 			)
 		"mouse":
-			# Wheel events are pulses rather than held buttons; keep fire/use held.
+			# Action-specific checks restrict wheel pulses to weapon cycling.
 			return (
 				code
 				in [
 					MOUSE_BUTTON_LEFT,
 					MOUSE_BUTTON_RIGHT,
 					MOUSE_BUTTON_MIDDLE,
+					MOUSE_BUTTON_WHEEL_UP,
+					MOUSE_BUTTON_WHEEL_DOWN,
 					MOUSE_BUTTON_XBUTTON1,
 					MOUSE_BUTTON_XBUTTON2
 				]
@@ -177,12 +223,29 @@ static func _valid_binding(value: Variant) -> bool:
 	return false
 
 
+static func valid_action_binding(action: String, binding: Variant) -> bool:
+	if not _valid_binding(binding):
+		return false
+	if action.begins_with("weapon_slot_"):
+		return binding.kind == "key"
+	if (
+		binding.kind == "mouse"
+		and int(binding.code) in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+	):
+		return action in ["next_weapon", "previous_weapon"]
+	return true
+
+
 static func _key(code: int) -> Dictionary:
 	return {"kind": "key", "code": code}
 
 
 static func _joy(code: int) -> Dictionary:
 	return {"kind": "joy_button", "code": code}
+
+
+static func _mouse(code: int) -> Dictionary:
+	return {"kind": "mouse", "code": code}
 
 
 static func _axis(code: int, sign_value: int) -> Dictionary:

@@ -1,0 +1,188 @@
+--- a/thirdparty/enet/enet/enet.h
++++ b/thirdparty/enet/enet/enet.h
+@@ -220,8 +220,9 @@
+    ENET_HOST_SEND_BUFFER_SIZE             = 256 * 1024,
+    ENET_HOST_BANDWIDTH_THROTTLE_INTERVAL  = 1000,
+    ENET_HOST_DEFAULT_MTU                  = 1392,
+-   ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE  = 32 * 1024 * 1024,
+-   ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA = 32 * 1024 * 1024,
++   ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE  = 2048,
++   ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA = 256 * 1024,
++   ENET_INCOMING_COMMAND_OVERHEAD = 256,
+ 
+    ENET_PEER_DEFAULT_ROUND_TRIP_TIME      = 500,
+    ENET_PEER_DEFAULT_PACKET_THROTTLE      = 32,
+--- a/thirdparty/enet/peer.c
++++ b/thirdparty/enet/peer.c
+@@ -221,6 +221,12 @@
+    return 0;
+ }
+ 
++static size_t
++enet_peer_incoming_cost (size_t length, enet_uint32 fragments)
++{
++    return length + ENET_INCOMING_COMMAND_OVERHEAD + (fragments + 31) / 32 * sizeof (enet_uint32);
++}
++
+ /** Attempts to dequeue any incoming queued packet.
+     @param peer peer to dequeue packets from
+     @param channelID holds the channel ID of the channel the packet was received on success
+@@ -247,9 +253,9 @@
+    if (incomingCommand -> fragments != NULL)
+      enet_free (incomingCommand -> fragments);
+ 
++   peer -> totalWaitingData -= enet_peer_incoming_cost (packet -> dataLength, incomingCommand -> fragmentCount);
++
+    enet_free (incomingCommand);
+-
+-   peer -> totalWaitingData -= packet -> dataLength;
+ 
+    return packet;
+ }
+@@ -276,7 +282,7 @@
+ }
+ 
+ static void
+-enet_peer_remove_incoming_commands (ENetList * queue, ENetListIterator startCommand, ENetListIterator endCommand, ENetIncomingCommand * excludeCommand)
++enet_peer_remove_incoming_commands (ENetPeer * peer, ENetList * queue, ENetListIterator startCommand, ENetListIterator endCommand, ENetIncomingCommand * excludeCommand)
+ {
+     ENetListIterator currentCommand;    
+     
+@@ -290,6 +296,7 @@
+          continue;
+ 
+        enet_list_remove (& incomingCommand -> incomingCommandList);
++       peer -> totalWaitingData -= enet_peer_incoming_cost (incomingCommand -> packet -> dataLength, incomingCommand -> fragmentCount);
+  
+        if (incomingCommand -> packet != NULL)
+        {
+@@ -307,9 +314,9 @@
+ }
+ 
+ static void
+-enet_peer_reset_incoming_commands (ENetList * queue)
+-{
+-    enet_peer_remove_incoming_commands(queue, enet_list_begin (queue), enet_list_end (queue), NULL);
++enet_peer_reset_incoming_commands (ENetPeer * peer, ENetList * queue)
++{
++    enet_peer_remove_incoming_commands(peer, queue, enet_list_begin (queue), enet_list_end (queue), NULL);
+ }
+  
+ void
+@@ -330,7 +337,7 @@
+     enet_peer_reset_outgoing_commands (& peer -> sentReliableCommands);
+     enet_peer_reset_outgoing_commands (& peer -> outgoingCommands);
+     enet_peer_reset_outgoing_commands (& peer -> outgoingSendReliableCommands);
+-    enet_peer_reset_incoming_commands (& peer -> dispatchedCommands);
++    enet_peer_reset_incoming_commands (peer, & peer -> dispatchedCommands);
+ 
+     if (peer -> channels != NULL && peer -> channelCount > 0)
+     {
+@@ -338,8 +345,8 @@
+              channel < & peer -> channels [peer -> channelCount];
+              ++ channel)
+         {
+-            enet_peer_reset_incoming_commands (& channel -> incomingReliableCommands);
+-            enet_peer_reset_incoming_commands (& channel -> incomingUnreliableCommands);
++            enet_peer_reset_incoming_commands (peer, & channel -> incomingReliableCommands);
++            enet_peer_reset_incoming_commands (peer, & channel -> incomingUnreliableCommands);
+         }
+ 
+         enet_free (peer -> channels);
+@@ -801,7 +808,7 @@
+        droppedCommand = currentCommand;
+     }
+ 
+-    enet_peer_remove_incoming_commands (& channel -> incomingUnreliableCommands, enet_list_begin (& channel -> incomingUnreliableCommands), droppedCommand, queuedCommand);
++    enet_peer_remove_incoming_commands (peer, & channel -> incomingUnreliableCommands, enet_list_begin (& channel -> incomingUnreliableCommands), droppedCommand, queuedCommand);
+ }
+ 
+ void
+@@ -953,7 +960,11 @@
+        goto discardCommand;
+     }
+ 
+-    if (peer -> totalWaitingData >= peer -> host -> maximumWaitingData)
++    if (dataLength > peer -> host -> maximumPacketSize || fragmentCount > dataLength ||
++        fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT)
++      goto notifyError;
++    if (enet_peer_incoming_cost (dataLength, fragmentCount) > peer -> host -> maximumWaitingData ||
++        peer -> totalWaitingData > peer -> host -> maximumWaitingData - enet_peer_incoming_cost (dataLength, fragmentCount))
+       goto notifyError;
+ 
+     packet = enet_packet_create (data, dataLength, flags);
+@@ -989,7 +1000,7 @@
+     {
+        ++ packet -> referenceCount;
+       
+-       peer -> totalWaitingData += packet -> dataLength;
++       peer -> totalWaitingData += enet_peer_incoming_cost (packet -> dataLength, fragmentCount);
+     }
+ 
+     enet_list_insert (enet_list_next (currentCommand), incomingCommand);
+--- a/thirdparty/enet/protocol.c
++++ b/thirdparty/enet/protocol.c
+@@ -695,6 +695,7 @@
+     if (fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT ||
+         fragmentNumber >= fragmentCount ||
+         totalLength > host -> maximumPacketSize ||
++        totalLength < fragmentCount ||
+         fragmentOffset >= totalLength ||
+         fragmentLength > totalLength - fragmentOffset)
+       return -1;
+--- a/modules/enet/enet_connection.h
++++ b/modules/enet/enet_connection.h
+@@ -126,6 +126,7 @@
+ 	// Extras
+ 	void get_peers(List<Ref<ENetPacketPeer>> &r_peers);
+ 	int get_local_port() const;
++	Dictionary get_security_limits() const;
+ 
+ 	// Godot additions
+ 	Error dtls_server_setup(const Ref<TLSOptions> &p_options);
+--- a/modules/enet/enet_connection.cpp
++++ b/modules/enet/enet_connection.cpp
+@@ -372,6 +372,17 @@
+ 	enet_socket_send(host->socket, &address, enet_buffers, 1);
+ }
+ 
++Dictionary ENetConnection::get_security_limits() const {
++    Dictionary limits;
++    limits["version"] = 1;
++    limits["packet"] = host ? int(host->maximumPacketSize) : ENET_HOST_DEFAULT_MAXIMUM_PACKET_SIZE;
++    limits["waiting"] = host ? int(host->maximumWaitingData) : ENET_HOST_DEFAULT_MAXIMUM_WAITING_DATA;
++    limits["overhead"] = ENET_INCOMING_COMMAND_OVERHEAD;
++    limits["unreliable_guard"] = true;
++    limits["dtls_guard"] = true;
++    return limits;
++}
++
+ void ENetConnection::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("create_host_bound", "bind_address", "bind_port", "max_peers", "max_channels", "in_bandwidth", "out_bandwidth"), &ENetConnection::create_host_bound, DEFVAL(32), DEFVAL(0), DEFVAL(0), DEFVAL(0));
+ 	ClassDB::bind_method(D_METHOD("create_host", "max_peers", "max_channels", "in_bandwidth", "out_bandwidth"), &ENetConnection::create_host, DEFVAL(32), DEFVAL(0), DEFVAL(0), DEFVAL(0));
+@@ -389,6 +400,7 @@
+ 	ClassDB::bind_method(D_METHOD("pop_statistic", "statistic"), &ENetConnection::pop_statistic);
+ 	ClassDB::bind_method(D_METHOD("get_max_channels"), &ENetConnection::get_max_channels);
+ 	ClassDB::bind_method(D_METHOD("get_local_port"), &ENetConnection::get_local_port);
++	ClassDB::bind_method(D_METHOD("get_security_limits"), &ENetConnection::get_security_limits);
+ 	ClassDB::bind_method(D_METHOD("get_peers"), &ENetConnection::_get_peers);
+ 	ClassDB::bind_method(D_METHOD("socket_send", "destination_address", "destination_port", "packet"), &ENetConnection::socket_send);
+ 
+--- a/thirdparty/enet/enet_godot.cpp
++++ b/thirdparty/enet/enet_godot.cpp
+@@ -357,13 +357,13 @@
+ 	Error recvfrom(uint8_t *p_buffer, int p_len, int &r_read, IPAddress &r_ip, uint16_t &r_port) {
+ 		udp_server->poll();
+ 		// TODO limits? Maybe we can better enforce allowed connections!
+-		if (udp_server->is_connection_available()) {
++		if (udp_server->is_connection_available() && peers.size() < max_clients) {
+ 			Ref<PacketPeerUDP> udp = udp_server->take_connection();
+ 			IPAddress peer_ip = udp->get_packet_address();
+ 			int peer_port = udp->get_packet_port();
+ 			Ref<PacketPeerDTLS> peer = server->take_connection(udp);
+ 			PacketPeerDTLS::Status status = peer->get_status();
+-			if (peers.size() < max_clients && status == PacketPeerDTLS::STATUS_HANDSHAKING || status == PacketPeerDTLS::STATUS_CONNECTED) {
++			if (peers.size() < max_clients && (status == PacketPeerDTLS::STATUS_HANDSHAKING || status == PacketPeerDTLS::STATUS_CONNECTED)) {
+ 				String key = String(peer_ip) + ":" + itos(peer_port);
+ 				Peer p;
+ 				p.conn = peer;

@@ -13,7 +13,7 @@ func _enter_tree() -> void:
 	):
 		return
 	preload("res://scripts/presentation/cd_display_settings.gd").initialize_window(get_window())
-	preload("res://scripts/audio/cd_audio_settings.gd").set_source_mode(
+	preload("res://scripts/audio/cd_audio_settings.gd").restore_user_mix(
 		int(preload("res://scripts/frontend/cd_frontend_settings.gd").values().sound)
 	)
 

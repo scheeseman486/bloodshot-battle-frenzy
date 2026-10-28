@@ -10,6 +10,56 @@ var _slot := 1
 var _slot_page := "save_slots"
 var _status := ""
 var _failure := ""
+var _cheat_page := 0
+var _cheat_actions: Array = []
+const CHEAT_CALLBACKS := [
+	0x30a12,
+	0x30a46,
+	0x30a5e,
+	0x30a8a,
+	0x30a96,
+	0x30aa6,
+	0x30ab6,
+	0x30ac4,
+	0x30ad2,
+	0x30ae0,
+	0x30aee,
+	0x30afc,
+	0x30b0a,
+	0x30b18,
+	0x30b26,
+	0x30b34
+]
+const CHEAT_LABELS := [
+	"Next level",
+	"Add a life",
+	"Restore health",
+	"Refill ammunition",
+	"Add key type 2",
+	"Add key type 1",
+	"Give Ricochet",
+	"Give Lock-on",
+	"Give Cannon",
+	"Give Rapid",
+	"Give Tri-bolt",
+	"Give Piercer",
+	"Give Grenade",
+	"Give Breather",
+	"Give Knobler",
+	"Give Spiral"
+]
+
+func _cheats_available() -> bool:
+	return is_instance_valid(campaign) and campaign.is_single_player_campaign() and Cheats.enabled()
+
+func _cheats_preference_changed() -> void:
+	if is_instance_valid(campaign):campaign.sync_cheat_policy()
+
+
+func _video_changed() -> void:
+	if is_instance_valid(campaign) and campaign.ready_to_play:
+		campaign.set_widescreen(Display.widescreen())
+
 
 
 func _ready() -> void:
@@ -21,9 +71,20 @@ func _ready() -> void:
 func menu_definition(name: String) -> Dictionary:
 	if name == "pause":
 		var items: Array = []
-		for label: String in ["New Game", "Save Game", "Load Game", "Options", "Quit to Main Menu"]:
+		var entries: Array=["New Game", "Save Game", "Load Game", "Options", "Quit to Main Menu"]
+		if _cheats_available():entries.append("Cheats")
+		for label: String in entries:
 			items.append({"native": label, "choices": 0, "address": 0})
 		return {"row": 3, "items": items}
+	if name=="cheat_actions":
+		_cheat_actions.clear()
+		if _cheats_available():
+			for index: int in range(_cheat_page*6,mini(16,(_cheat_page+1)*6)):
+				_cheat_actions.append({"label":CHEAT_LABELS[index],"callback":CHEAT_CALLBACKS[index]})
+			if _cheat_page>0:_cheat_actions.append({"label":"Previous cheats","page":_cheat_page-1})
+			if _cheat_page<2:_cheat_actions.append({"label":"More cheats","page":_cheat_page+1})
+		_cheat_actions.append({"label":"Back"})
+		return {"row":3,"items":_cheat_actions.map(func(action):return {"native":action.label,"choices":0,"address":0})}
 	if name in ["save_slots", "load_slots", "delete_slots"]:
 		var items: Array = []
 		for number: int in range(1, slots.COUNT + 1):
@@ -33,6 +94,7 @@ func menu_definition(name: String) -> Dictionary:
 				if not info.exists
 				else ("Level %d" % info.level if info.valid else "Invalid save")
 			)
+			if info.valid and info.cheats_enabled:detail += " - Cheats enabled"
 			items.append({"native": "Slot %d - %s" % [number, detail], "choices": 0, "address": 0})
 		items.append(
 			{
@@ -90,7 +152,7 @@ func _interactive() -> bool:
 
 
 func _tick() -> void:
-	if not _interactive() or is_instance_valid(_scores):
+	if not _interactive() or is_instance_valid(_scores) or is_instance_valid(_video_menu) or is_instance_valid(_audio_menu):
 		return
 	super._tick()
 	if is_instance_valid(campaign):
@@ -100,6 +162,20 @@ func _tick() -> void:
 
 
 func _activate(row: int) -> void:
+	if page=="cheat_actions":
+		if row<1 or row>_cheat_actions.size():return
+		var action: Dictionary=_cheat_actions[row-1]
+		if action.has("page") and _cheats_available():
+			_cheat_page=int(action.page)
+			open_menu("cheat_actions")
+		elif action.has("callback"):
+			if _cheats_available() and campaign.apply_menu_cheat(int(action.callback)):
+				_status="Applied "+str(action.label)
+				open_menu("cheat_actions")
+				menu_state.selected=row
+				_resolve_row(row-1)
+		else:open_menu("pause")
+		return
 	if page == "pause":
 		match row:
 			1, 5:
@@ -109,6 +185,10 @@ func _activate(row: int) -> void:
 				open_menu("save_slots")
 			3:
 				open_menu("load_slots")
+			6:
+				if _cheats_available():
+					_cheat_page=0
+					open_menu("cheat_actions")
 			4:
 				open_menu("options")
 				$Audio.play_track(3, true)
@@ -189,19 +269,19 @@ func _go_back() -> void:
 		resumed.emit.call_deferred()
 	elif page in ["overwrite_save", "delete_save", "save_error", "delete_slots"]:
 		open_menu(_slot_page)
-	elif page in ["options", "save_slots", "load_slots"]:
+	elif page in ["options", "save_slots", "load_slots", "cheat_actions"]:
 		open_menu("pause")
 	else:
 		super._go_back()
 
 
 func _input(event: InputEvent) -> void:
-	if not _interactive() or is_instance_valid(_scores):
+	if not _interactive() or is_instance_valid(_scores) or is_instance_valid(_video_menu) or is_instance_valid(_audio_menu):
 		return
 	if event is InputEventKey and event.physical_keycode == KEY_F12:
 		return  # Campaign owns its independent development panel.
 	if event is InputEventJoypadButton and event.button_index == JOY_BUTTON_START:
-		if event.pressed and not is_instance_valid(_controls_menu):
+		if event.pressed and not _settings_modal_open():
 			_go_back()
 		get_viewport().set_input_as_handled()
 		return
@@ -209,10 +289,12 @@ func _input(event: InputEvent) -> void:
 
 
 func uses_small_font() -> bool:
+	# Preferences pages keep the frontend artwork/font; pause actions overlay play.
 	return (
 		page
 		in [
 			"pause",
+			"cheat_actions",
 			"save_slots",
 			"load_slots",
 			"delete_slots",
@@ -228,6 +310,7 @@ func small_menu_footer() -> String:
 
 
 func small_menu_heading() -> String:
+	if page=="cheat_actions":return "Cheats - %d / 3"%(_cheat_page+1)
 	if page in ["save_slots", "overwrite_save"]:
 		return "Save Game"
 	if page == "load_slots":
@@ -271,6 +354,6 @@ func _show_failure(message: String) -> void:
 
 
 func _exit_tree() -> void:
-	preload("res://scripts/audio/cd_audio_settings.gd").set_source_mode(
+	preload("res://scripts/audio/cd_audio_settings.gd").restore_user_mix(
 		int(Settings.values().sound)
 	)

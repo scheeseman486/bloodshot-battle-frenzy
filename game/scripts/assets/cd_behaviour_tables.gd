@@ -9,6 +9,7 @@ var weapons: Array[Dictionary] = []
 var projectile_weapons: Dictionary = {}
 var spread := PackedInt32Array()
 var rewards := PackedInt32Array()
+var level_tracks := PackedInt32Array()
 var player_flashes: Dictionary = {}
 var player_proxy_frames := PackedInt32Array()
 var source_sha256: String
@@ -19,6 +20,9 @@ func decode(data: PackedByteArray) -> bool:
 	# spans; original instructions are never interpreted by the native game.
 	if data.size() < 0x328ee:
 		return false
+	level_tracks.clear()
+	for index: int in range(8):
+		level_tracks.append(_s16(data, 0x31130 - 0x8000 + index * 2))
 	sine.clear()
 	cosine.clear()
 	weapons.clear()

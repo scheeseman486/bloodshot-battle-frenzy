@@ -55,6 +55,10 @@ var _vs_phase := ""
 var _vs_tick := 0
 
 
+func _enter_tree() -> void:
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(self)
+
+
 func configure(world: Node3D, session: RefCounted) -> bool:
 	_world = world
 	_session = session
@@ -189,6 +193,15 @@ func _set_group_transform(group: String) -> void:
 
 func displayed_health() -> int:
 	return int(_session.fighter.health_copy)
+
+
+func weapon_sight_position() -> Vector2:
+	var position := Vector2(_weapon_sight.get("position", Vector2i(120, 132)))
+	# Acquisition stays source-backed; only the native camera's displayed offset
+	# changes with FOV. Keep the original artwork size and optical vertical offset.
+	var scale: float = preload("res://scripts/presentation/cd_display_settings.gd").focal_scale()
+	position.x = 120.0 + (position.x - 120.0) * scale
+	return position
 
 
 func weapon_positions() -> Array[Vector2]:
@@ -415,7 +428,7 @@ func _draw() -> void:
 	if not pause_overlay and _weapon_sight.visible:
 		# The source sight is a high-priority sprite over the view cover. Native
 		# drawing preserves that order and the HUD's measured source pixel aspect.
-		draw_texture(ui.weapon_sight(int(_weapon_sight.frame), true), _weapon_sight.position)
+		draw_texture(ui.weapon_sight(int(_weapon_sight.frame), true), weapon_sight_position())
 	if not pause_overlay and not _vs_status.is_empty():
 		_draw_large_message(_vs_status.to_ascii_buffer())
 	draw_set_transform(Vector2.ZERO)

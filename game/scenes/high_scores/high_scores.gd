@@ -162,13 +162,13 @@ func _finish() -> void:
 func _complete_finish() -> void:
 	if not store.last_error.is_empty():
 		# Saving failure is visible, while the process-local score is retained.
-		var dialog := AcceptDialog.new()
-		dialog.title = "High scores"
-		dialog.dialog_text = "High-score storage is unavailable. Scores entered during this session remain available until the game closes."
+		var dialog := preload("res://scenes/small_notice/small_notice.tscn").instantiate()
+		dialog.modal = true
+		dialog.font = source.load_cd_small_font().native_font()
+		dialog.heading = "High scores"
+		dialog.text = "High-score storage is unavailable. Scores entered during this session remain available until the game closes."
+		dialog.dismissed.connect(func(_accepted: bool): _return_to_frontend())
 		add_child(dialog)
-		dialog.confirmed.connect(_return_to_frontend)
-		dialog.close_requested.connect(_return_to_frontend)
-		dialog.popup_centered()
 	else:
 		_return_to_frontend()
 

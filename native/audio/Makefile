@@ -35,6 +35,7 @@ ifeq ($(PLATFORM),windows)
   DEFINES += -DWINDOWS_ENABLED
   CXXFLAGS += -m64 -march=x86-64
   LDFLAGS += -m64 -static -static-libgcc -static-libstdc++ -Wl,--no-undefined
+  SYSTEM_LIBS += -ladvapi32
 else
   DEFINES += -DLINUX_ENABLED -DUNIX_ENABLED
   SYSTEM_LIBS += -ldl

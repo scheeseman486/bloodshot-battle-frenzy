@@ -1,0 +1,31 @@
+{
+  "source_url": "https://codeload.github.com/godotengine/godot/tar.gz/refs/tags/4.7.1-stable",
+  "source_sha256": "eb2378d76964b25d5ecb61e16c934b59ae4f605c42cdb1a2a49eb7bf6d33dcf0",
+  "patch_sha256": "b151ca957359af8de610c11bb2f5e19fbf52d65e172577fe820660e344928b51",
+  "files": {
+    "thirdparty/enet/enet/enet.h": {
+      "original": "6e585fb4d16320c2e6c5339adb8d78d300f7ee423b7fb11ba51f05902109e9db",
+      "patched": "0578d6275b792e1a84fc8be3b503742519c2d8e66b476d20b46dd65bf50aaff4"
+    },
+    "thirdparty/enet/peer.c": {
+      "original": "a967be4d6b03e8059838587f6f0e13fe092109121f51bec4ed039721ddc1a157",
+      "patched": "3baf6f29cc843ba709ba7b9475ec48794828a75455c98d5469b9ba028fbeee23"
+    },
+    "thirdparty/enet/protocol.c": {
+      "original": "914e82292e041db6b0f9ec0c9459d8e2fb7e32719e0ad6effa3234332f2cff24",
+      "patched": "770c53ccbaa6229759bd25a406f8c049ae9d66db3f045398dfd3e254087ec4a6"
+    },
+    "modules/enet/enet_connection.h": {
+      "original": "f724e8858bda8577203fe03739b724beb506e1879244f8cc370d4c557377eb3f",
+      "patched": "63c321e7d13642bf496d5f782074e94cda4f336e8e39fe6c3756e4968ddd96f5"
+    },
+    "modules/enet/enet_connection.cpp": {
+      "original": "91c46ac50b489e9f55b30fce12412ce552f43275a1a82c8ea45263945f5e18c8",
+      "patched": "b3c843b39dc5f838cd59ce5b12af37b6364be82c556696e5232873c45a990a09"
+    },
+    "thirdparty/enet/enet_godot.cpp": {
+      "original": "314ac0752c9291a130c8643d48bbf38dc2456b7e0014cbe3433eabe39e6d3c6c",
+      "patched": "0806819344e6c7506ce1b9e2ccb33c8cecfaa6910019d4e3eab621691c1f4f6f"
+    }
+  }
+}

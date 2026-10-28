@@ -25,6 +25,8 @@ var blocked_doors: Array = []
 var last_events: Array = []
 var update_count := 0
 var countdown_expired := false
+# Source $59D8E retry delay; logical world time, never stream position.
+var music_restart_delay := 0
 var palette_state := {"phase": 0, "bank": 0}
 var demo_mode := false
 var demo_actions: Array = []
@@ -121,6 +123,7 @@ func configure_definition(data: RefCounted) -> void:
 	event_sequence = 0
 	update_count = 0
 	countdown_expired = false
+	music_restart_delay = 0
 	palette_state = {"phase": 0, "bank": 0}
 	actor_system = null
 	vs_state = {}
@@ -374,7 +377,7 @@ func _global_input_prefix() -> void:
 	if not timer.expired:
 		return
 	_finish_evacuation(true)
-	audio_requested.emit({"kind": "effects_stop"})
+	# $C260 requests -1: the source PCM router does nothing. Keep voice tails.
 	for index: int in range(_players.size()):
 		if previous_states[index] == 1:
 			actor_system.player_died(_players[index].handle)
@@ -390,6 +393,7 @@ func _global_input_prefix() -> void:
 		# Native co-op partial evacuation has the same completed-level handoff.
 		audio_requested.emit({"kind": "music_play", "track": 14, "loop": false})
 		return
+	music_restart_delay = 100
 	for index: int in range(actor_system.actors.size()):
 		actor_system.actors[index] = Progression.restore(
 			actor_system.actors[index], actor_system.catalog
@@ -409,7 +413,16 @@ func _step(elapsed: int, visibility: Dictionary, move_players: bool) -> void:
 	assert(elapsed > 0 and elapsed <= 15)
 	last_events.clear()
 	if is_complete() or is_game_over():
+		music_restart_delay = 0
 		return
+	if music_restart_delay > 0:
+		if int(actor_system.encounter.countdown) != 0 or int(actor_system.encounter.exit_delay) != 0:
+			music_restart_delay = 0
+		else:
+			music_restart_delay = maxi(0, music_restart_delay - elapsed)
+			if music_restart_delay == 0 and not demo_mode and level.source_path.begins_with("/LEVEL"):
+				var number := int(level.source_path.trim_prefix("/LEVEL").trim_suffix(".LEV"))
+				audio_requested.emit({"kind":"music_play","track":int(tables.level_tracks[(number-1)%8]),"loop":true})
 	var remainder := int(actor_system.geometry_remainder) if actor_system != null else 0
 	for player: RefCounted in _players:
 		player.begin_step(elapsed, visibility.get(player.id, Callable()), move_players)
@@ -639,6 +652,7 @@ func _adopt_checkpoint(candidate: RefCounted) -> void:
 		if actor_system != null and actor_system.is_connected(pair[0], Callable(self, pair[1])):
 			actor_system.disconnect(pair[0], Callable(self, pair[1]))
 		candidate.actor_system.disconnect(pair[0], Callable(candidate, pair[1]))
+	music_restart_delay = candidate.music_restart_delay
 	loot_state = candidate.loot_state.duplicate(true)
 	_loot_geometry = candidate._loot_geometry
 	score_state = candidate.score_state.duplicate(true)
@@ -808,6 +822,7 @@ func _record_mine(handle: int) -> void:
 
 
 func _begin_evacuation() -> void:
+	music_restart_delay = 0
 	if score_state.is_empty() or not score_state.evacuation.is_empty():
 		return  # One award assessment per level attempt, even if the core restores.
 	var eligible := []

@@ -111,6 +111,7 @@ func _ready() -> void:
 			return
 	endpoint.joined.connect(_joined)
 	endpoint.rejected.connect(_fail)
+	endpoint.admin.completed.connect(_remote_admin_result)
 	if endpoint.phase == "live":
 		_joined()
 
@@ -362,7 +363,7 @@ func _input(event: InputEvent) -> void:
 		or event is InputEventJoypadButton
 		or event is InputEventJoypadMotion
 	):
-		if controls.ingest(event):
+		if controls.ingest(event, true, int(endpoint.client.session.fighter.state) == 1):
 			_open_menu()
 			return
 		endpoint.client.command(controls.packet(true), controls.aim_units_per_second(true))
@@ -402,8 +403,7 @@ func _fail(reason: String) -> void:
 	$Audio.stop_all()
 	_retire_overlays()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	$OriginalHud/Status.visible = true
-	$OriginalHud/Status.text = reason
+	$OriginalHud/Status.show_message(reason)
 
 
 func _exit_tree() -> void:
@@ -438,6 +438,7 @@ func _open_menu() -> void:
 		_card.process_mode = Node.PROCESS_MODE_DISABLED
 	_menu = preload("res://scenes/network_menu/session_menu.tscn").instantiate()
 	_menu.game = self
+	if endpoint.admin.available: endpoint.admin.refresh_players()
 	_menu.resumed.connect(_close_menu)
 	_menu.leave_requested.connect(leave_game)
 	$OriginalHud.add_child(_menu)
@@ -474,13 +475,15 @@ func _present_party() -> void:
 	var party: Dictionary = endpoint.installed.party
 	var versus: Dictionary = endpoint.installed.get("versus", {})
 	if versus.get("phase", "") == "results":
+		if is_instance_valid(_card) and _card_phase == "vs_results":
+			_card.set_host_controls(host_endpoint != null or endpoint.admin.available)
 		if not is_instance_valid(_card):
 			_close_menu()
 			_card_phase = "vs_results"
 			_card = preload("res://scenes/vs_results/vs_results.tscn").instantiate()
 			_card.result = versus.result.duplicate(true)
 			_card.local_reference = endpoint.client.reference.duplicate()
-			_card.host = host_endpoint != null
+			_card.host = host_endpoint != null or endpoint.admin.available
 			_card.completed.connect(func(action): request_admin(action))
 			_card.menu_requested.connect(_open_menu)
 			$OriginalHud.add_child(_card)
@@ -622,9 +625,14 @@ func _devices_changed(_device: int, _connected: bool) -> void:
 		endpoint.client.command({"held": 0xffffffff, "strafe": 0})
 
 
-## Only the local listen-server scene has the administration capability. Remote
-## clients can send ordinary input and existing party actions, never host verbs.
+## Local actions use the host boundary queue; remote actions use the separately
+## authorized typed protocol. UI capabilities never grant authority themselves.
 func request_admin(action: String, value: Variant = null) -> bool:
+	if endpoint == null: return false
+	if host_endpoint == null and not _leaving:
+		var accepted: bool = endpoint.admin.request(action, value)
+		if not accepted and is_instance_valid(_menu): _menu.status = "Wait for the current server request"
+		return accepted
 	if (
 		host_endpoint == null
 		or _leaving
@@ -637,50 +645,13 @@ func request_admin(action: String, value: Variant = null) -> bool:
 	return true
 
 
+func _remote_admin_result(action: String, accepted: bool, error: String) -> void:
+	if is_instance_valid(_menu): _menu.admin_result(action, accepted, error)
+
+
 func _execute_admin(command: Dictionary) -> void:
-	var coordinator: RefCounted = host_endpoint.coop
-	var accepted := false
-	var moderation_error := ""
-	match command.action:
-		"bot_count":
-			accepted=coordinator.set_bot_count(int(command.value))
-		"bot_difficulty":
-			accepted=coordinator.set_bot_difficulty(int(command.value))
-		"bot_remove":
-			accepted=coordinator.remove_bot(command.value)
-		"revive_bot":
-			accepted=coordinator.revive_bot(command.value)
-		"mode":
-			accepted = coordinator.select_mode(str(command.value))
-		"map":
-			accepted = coordinator.select_map(str(command.value))
-		"limit":
-			accepted = coordinator.set_kill_limit(int(command.value))
-		"rematch":
-			accepted = coordinator.rematch()
-		"lobby":
-			accepted = coordinator.select_map("lobby")
-		"save", "load":
-			var slots := preload("res://scripts/persistence/save_slots.gd").new()
-			slots.directory = "user://network-saves"
-			accepted = (
-				coordinator.save_game(int(command.value), slots)
-				if command.action == "save"
-				else coordinator.load_game(int(command.value), slots)
-			)
-		"ban":
-			if command.value != endpoint.client.reference:
-				accepted = host_endpoint.ban_player(command.value)
-				moderation_error = host_endpoint.last_error
-		"unban":
-			accepted = host_endpoint.unban_player(str(command.value))
-			moderation_error = host_endpoint.last_error
-		"kick":
-			for connection: int in host_endpoint.peers.keys():
-				var row: Dictionary = host_endpoint.peers[connection]
-				var reference: Dictionary = row.owner if not row.owner.is_empty() else row.reclaim
-				if reference == command.value and reference != endpoint.client.reference:
-					host_endpoint.transport.reject_peer(connection, "Player kicked")
-					accepted = true
+	var result := preload("res://scripts/network/host_administration.gd").execute(
+		host_endpoint, command.action, command.value, endpoint.client.reference
+	)
 	if is_instance_valid(_menu):
-		_menu.admin_result(command.action, accepted, moderation_error if not moderation_error.is_empty() else coordinator.last_error)
+		_menu.admin_result(command.action, result.ok, result.error)

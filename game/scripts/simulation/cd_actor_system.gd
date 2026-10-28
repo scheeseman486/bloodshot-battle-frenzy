@@ -46,6 +46,8 @@ var control_scheme := 1
 var demo_mode := false
 # Derived from the authority definition, never from a client's requested mode.
 var native_multiplayer := false
+# Rebuilt by the application authority; original/reference sessions leave this off.
+var native_swept_hits := false
 var actors: Array = []
 var active: Array = []
 var movement_seed := 0x39ea017f
@@ -100,6 +102,8 @@ var _proxy_id: int:
 	set(value):
 		player_proxies[_current_player] = value
 var _update := 0
+# Derived native single-player policy; reconstructed from campaign save history.
+var scoring_disabled := false
 
 
 func configure(
@@ -688,7 +692,8 @@ func _advance_projectile(index: int, elapsed: int, groups: Array) -> void:
 					targets.remove_at(at)
 			return impact,
 		catalog,
-		geometry_remainder
+		geometry_remainder,
+		native_swept_hits
 	)
 	actors[index] = result.state
 	if int(projectile.kind) in [27, 28] and int(result.state.kind) == 48:
@@ -854,7 +859,8 @@ func _combat_side_effects(before: Dictionary, after: Dictionary, damage: int, ar
 			return
 		if kind in [5, 6] and int(before.health) == int(after.health):
 			return
-		encounter.damage_total = (int(encounter.get("damage_total", 0)) + damage) & 0xffffffff
+		if not scoring_disabled:
+			encounter.damage_total = (int(encounter.get("damage_total", 0)) + damage) & 0xffffffff
 	if kind == 4 or int(after.health) != 0 or int(after.kind) == kind:
 		return
 	encounter.kills = _word(int(encounter.get("kills", 0)) + 1)
@@ -1042,6 +1048,7 @@ func _damage_context(actor: int, clone_id: int) -> Dictionary:
 
 
 func _apply_core_damage(target: int, result: Dictionary) -> void:
+	var previous_gate := attack_gate
 	var before: Dictionary = actors[target]
 	var kind := int(before.kind)
 	encounter = result.globals
@@ -1060,6 +1067,12 @@ func _apply_core_damage(target: int, result: Dictionary) -> void:
 		)
 		events.append({"kind": "core_destroyed", "actor": target})
 	elif kind == 17 and int(result.state.kind) != 17:
+		# $2FAAE is shared by direct and splash health paths. Availability of
+		# this sample on a weapon does not replace the final-satellite cue.
+		if previous_gate > 0 and attack_gate == 0:
+			var cue := AudioRequests.sample(0x12aa4, before)
+			cue.cue = "core_unlock"
+			audio_requested.emit(cue)
 		events.append({"kind": "satellite_destroyed", "actor": target, "remaining": attack_gate})
 	elif kind == 4 and attack_gate != 0 and int(result.state.health) == int(before.health):
 		events.append({"kind": "core_shielded", "actor": target, "remaining": attack_gate})

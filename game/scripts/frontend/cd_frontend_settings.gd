@@ -56,5 +56,5 @@ static func apply(choices: Dictionary) -> Error:
 		return result
 	_values = candidate
 	_language_saved = true
-	AudioSettings.set_source_mode(int(_values.sound))
+	AudioSettings.restore_user_mix(int(_values.sound))
 	return OK

@@ -125,6 +125,8 @@ func describe(world: RefCounted) -> Dictionary:
 			world.actor_system.player_contexts.get(world.actor_system._current_player)
 		),
 	}
+	if world.music_restart_delay > 0:
+		result.world.music_restart_delay = world.music_restart_delay
 	if not world.loot_state.is_empty():
 		result.world.loot_state = world.loot_state.duplicate(true)
 	if not world.score_state.is_empty():
@@ -218,11 +220,21 @@ func restore(world: RefCounted, bytes: PackedByteArray, source: RefCounted = nul
 	candidate.demo_recording = demo_recording
 	var new_epoch: int = candidate.actor_system.epoch
 	_set_fields(candidate, state.world, WORLD_FIELDS)
+	candidate.music_restart_delay = int(state.world.get("music_restart_delay",0))
 	candidate.score_state = state.world.get("score_state", {}).duplicate(true)
 	candidate.vs_state = state.world.get("vs_state", {}).duplicate(true)
 	if state.world.has("bots"): candidate.bots.state=state.world.bots.duplicate(true)
 	candidate.loot_state = state.world.get("loot_state", candidate.loot_state).duplicate(true)
 	_set_fields(candidate.actor_system, state.system, SYSTEM_FIELDS)
+	# Native scoring exclusion is derived from portable campaign provenance,
+	# including when research/server callers restore without a campaign scene.
+	candidate.actor_system.scoring_disabled = (
+		candidate.stop_when_exhausted and not candidate.demo_mode
+		and not candidate.actor_system.native_multiplayer
+		and bool(candidate.campaign_state.get("cheats_ever_enabled",candidate.campaign_state.get("cheated",false)))
+	)
+	if candidate.actor_system.scoring_disabled:
+		candidate.actor_system.encounter.damage_total = 0
 	candidate.actor_system.epoch = new_epoch
 	for owner: Dictionary in candidate.actor_system.projectile_owners.values():
 		if (

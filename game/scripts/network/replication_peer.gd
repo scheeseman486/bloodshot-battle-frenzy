@@ -75,6 +75,8 @@ var coop: RefCounted
 var live_scores := LiveTally.new()
 var local_host_reference: Dictionary = {}
 var returning := preload("res://scripts/network/returning_players.gd").new()
+var admin := preload("res://scripts/network/admin_client.gd").new()
+var admin_service: RefCounted
 # Replaceable UI telemetry is epoch/token scoped, outside world continuations.
 var live_tally: Dictionary = {}
 var _tally_sequence := 0
@@ -95,6 +97,7 @@ var metrics := {
 
 func _init() -> void:
 	add_child(transport)
+	admin.transport = transport
 	transport.connected.connect(_connected)
 	transport.disconnected.connect(_disconnected)
 	transport.failed.connect(_fail)
@@ -119,6 +122,8 @@ func host(server: RefCounted, port: int, address: String = "127.0.0.1") -> bool:
 	_bind_feedback()
 	coop = preload("res://scripts/game/coop_campaign.gd").new()
 	coop.configure(self)
+	admin_service = preload("res://scripts/network/admin_service.gd").new()
+	admin_service.configure(self)
 	phase = "host"
 	return true
 
@@ -146,7 +151,9 @@ func mark_assets_ready() -> void:
 
 func _connected(id: int) -> void:
 	if authority == null:
+		if transport.purpose == "manage": phase = "managing"
 		return
+	if transport.identities.get(id, {}).get("purpose") == "manage": return
 	if peers.size() >= 4:
 		transport.disconnect_peer(id)
 		return
@@ -204,6 +211,7 @@ func _disconnected(id: int) -> void:
 			)
 			roster_changed()
 	else:
+		admin.clear()
 		live_tally.clear()
 		phase = "disconnected"
 		_commands.clear()
@@ -257,12 +265,15 @@ func pump(now_ms: int, visual_usec: int = -1) -> void:
 		return
 	if authority != null and epoch != authority.world.actor_system.epoch:
 		_world_changed()
+	if admin_service != null: admin_service.poll()
 	var inbox := transport.received
 	transport.received = []
 	_processing_inbox = true
 	for packet: Dictionary in inbox:
 		_handle(packet)
 	_processing_inbox = false
+	if admin_service != null: admin_service.execute_pending()
+	else: admin.poll()
 	# Live snapshots are replaceable views. A received burst may contain several
 	# complete deltas against retained ACKed baselines; validate/install the newest
 	# once. Commands, reliable events and bootstrap transactions still run in order.
@@ -372,6 +383,10 @@ func _reset_peer(id: int) -> void:
 
 
 func _handle(packet: Dictionary) -> void:
+	if packet.channel == 5:
+		if admin_service != null: admin_service.receive(packet.peer, packet.bytes)
+		elif packet.peer == 1: admin.receive(packet.bytes)
+		return
 	if authority != null and not peers.has(packet.peer):
 		return
 	if authority == null and packet.peer != 1:
@@ -1091,7 +1106,7 @@ func _service_commands(id: int) -> void:
 			continue
 		var command: Dictionary = row.commands[next]
 		if (
-			command.controls != row.sent_controls
+			preload("res://scripts/input/native_weapon_selection.gd").source_changed(command.controls, row.sent_controls)
 			and authority.world.clock.tick_count < int(row.next_input)
 		):
 			break
@@ -1128,7 +1143,7 @@ func _service_commands(id: int) -> void:
 		)
 		while row.receipts.size() > 64:
 			row.receipts.pop_front()
-		if command.controls != row.sent_controls:
+		if preload("res://scripts/input/native_weapon_selection.gd").source_changed(command.controls, row.sent_controls):
 			row.next_input = accepted_ordinal + 4
 		row.sent_controls = command.controls.duplicate()
 		row.neutral = false
@@ -1171,7 +1186,14 @@ func _effect(event: Dictionary) -> void:
 			var item: Dictionary = row.events.pop_front()
 			var bytes := Wire.new().encode({"type": "events", "token": row.token, "events": [item]})
 			if bytes.size() <= 1000:
-				transport.send_to(id, 4, bytes, false)
+				# Music lifecycle and one-shot reactor unlocks must survive an
+				# expiry burst of death/life effects. No musical phase is sent.
+				var cue: Dictionary = item.payload
+				var reliable: bool = item.category == "audio" and (
+					str(cue.get("kind", "")).begins_with("music_")
+					or cue.get("cue", "") == "core_unlock"
+				)
+				transport.send_to(id, 4, bytes, reliable)
 
 
 func _drain_events() -> void:
@@ -1248,6 +1270,7 @@ func _staged_bytes() -> int:
 func _fail(reason: String) -> void:
 	last_error = reason
 	phase = "rejected"
+	admin.clear()
 	rejected.emit(reason)
 
 
@@ -1339,6 +1362,8 @@ func close() -> void:
 		if authority.effect.is_connected(_effect):
 			authority.effect.disconnect(_effect)
 	transport.close()
+	admin.clear()
+	if admin_service != null: admin_service.rows.clear()
 	if _score_system != null and _score_system.opponent_killed.is_connected(_opponent_killed):
 		_score_system.opponent_killed.disconnect(_opponent_killed)
 	_score_system = null

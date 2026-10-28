@@ -57,3 +57,18 @@ static func box(fill: Color, rim: Color) -> StyleBoxFlat:
 	style.content_margin_top = 0
 	style.content_margin_bottom = 0
 	return style
+
+
+static func with_source_sliders(font: Font, ui: RefCounted) -> Theme:
+	var result := make(font)
+	var rail := StyleBoxTexture.new()
+	rail.texture = ui.menu_slider_texture(0, ACCENT)
+	rail.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	rail.content_margin_top = 4
+	rail.content_margin_bottom = 4
+	for name: String in ["slider", "grabber_area", "grabber_area_highlight"]:
+		result.set_stylebox(name, "HSlider", rail)
+	result.set_icon("grabber", "HSlider", ui.menu_slider_texture(1, ACCENT))
+	result.set_icon("grabber_highlight", "HSlider", ui.menu_slider_texture(3, INK))
+	result.set_icon("grabber_disabled", "HSlider", ui.menu_slider_texture(1, ACCENT))
+	return result

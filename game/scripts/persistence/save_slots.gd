@@ -14,7 +14,7 @@ func path(slot: int) -> String:
 
 
 func describe(slot: int) -> Dictionary:
-	var result := {"slot": slot, "exists": false, "valid": false, "level": 0, "error": ""}
+	var result := {"slot": slot, "exists": false, "valid": false, "level": 0, "error": "", "cheats_enabled":false}
 	var location := path(slot)
 	if location.is_empty():
 		result.error = "Invalid save slot"
@@ -31,6 +31,12 @@ func describe(slot: int) -> Dictionary:
 	result.valid = state.has("manifest") and state.manifest.get("level") is int
 	if result.valid:
 		result.level = state.manifest.level
+		var campaign: Dictionary=state.get("world",{}).get("campaign_state",{})
+		var flag: Variant=campaign.get("cheats_ever_enabled",campaign.get("cheated",false))
+		if not flag is bool:
+			result.valid=false
+			result.error="Invalid save cheat flag"
+		else:result.cheats_enabled=flag
 	else:
 		result.error = "Save has no campaign metadata"
 	return result

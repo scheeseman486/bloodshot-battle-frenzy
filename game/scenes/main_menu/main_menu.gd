@@ -13,6 +13,10 @@ var _controls_menu: Control
 var _menu_items: Array = []
 var _startup_language := false
 var _automatic_credits := false
+const AudioSettings = preload("res://scripts/audio/cd_audio_settings.gd")
+var _audio_menu: Control
+var _video_menu: Control
+const Cheats = preload("res://scripts/frontend/cd_cheat_settings.gd")
 var page := "main"
 var menu_state := {}
 var labels: Array[PackedByteArray] = []
@@ -33,12 +37,14 @@ var _credit_page := 0
 var _credit_age := 0
 var _credit_closing := 0
 var _credit_cancel := false
-var _modal: AcceptDialog
+var _modal: Control
 var _text_entry: Control
+var _version: Label
 
 
 func _ready() -> void:
 	if mount_frontend():
+		_make_version()
 		if not initial_menu.is_empty():
 			open_menu(initial_menu)
 		elif get_tree().get_meta("multiplayer_menu", false):
@@ -57,14 +63,50 @@ func _ready() -> void:
 			open_menu("main")
 
 
+func _make_version() -> void:
+	_version = Label.new()
+	_version.name = "Version"
+	_version.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_version.visible = false
+	_version.text = "v%s" % str(ProjectSettings.get_setting("application/config/version", ""))
+	_version.add_theme_font_override("font", source.load_cd_small_font().native_font())
+	_version.add_theme_font_size_override("font_size", 12)
+	_version.add_theme_color_override("font_color", Color.WHITE)
+	_version.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_version.add_theme_constant_override("shadow_offset_x", 1)
+	_version.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_version)
+	_layout()
+
+
+func _layout() -> void:
+	super._layout()
+	if is_instance_valid(_version):
+		_version.size = _version.get_minimum_size()
+		_version.scale = artwork_scale
+		_version.position = (
+			get_viewport().get_visible_rect().size - (_version.size + Vector2(6, 4)) * artwork_scale
+		)
+
+
 func open_menu(name: String) -> void:
+	if name == "video":
+		if page != "preferences": open_menu("preferences")
+		open_video()
+		return
+	if name == "audio_settings":
+		if page != "preferences": open_menu("preferences")
+		open_audio()
+		return
 	if page == "sound_test" and name != "sound_test":
 		$Audio.stop_effects()
-		preload("res://scripts/audio/cd_audio_settings.gd").set_source_mode(
+		preload("res://scripts/audio/cd_audio_settings.gd").restore_user_mix(
 			int(Settings.values().sound)
 		)
 		$Audio.play_track(3, true)
 	page = name
+	if is_instance_valid(_version):
+		_version.visible = name == "main"
 	var definition := menu_definition(name)
 	# Extend only the native menu instance; the verified CD table stays immutable.
 	var items: Array = definition.items.duplicate(true)
@@ -74,9 +116,14 @@ func open_menu(name: String) -> void:
 	if name == "battle":
 		items.append({"native": "Co-op", "choices": 0, "address": 0})
 	if name == "preferences":
-		items = items.filter(func(item: Dictionary): return int(item.address) != 0x55aaa)
-		items.insert(items.size() - 1, {"native": "Input bindings", "choices": 0, "address": 0})
-		items.insert(items.size() - 1, {"native": "Video settings", "choices": 0, "address": 0})
+		items = [
+			{"native": "Input bindings", "choices": 0, "address": 0},
+			{"native": "Video settings", "choices": 0, "address": 0},
+			{"native": "Audio settings", "choices": 0, "address": 0},
+			items[0], # Preserve the original localized Language/Exit labels.
+			{"native": "Cheats", "choices": 0, "address": 0},
+			items[-1]
+		]
 	_menu_items = items
 	var choices := Settings.values()
 	if name == "language":
@@ -105,7 +152,9 @@ func open_menu(name: String) -> void:
 				1
 				+ int(
 					(
-						Display.widescreen()
+						Cheats.enabled()
+						if item.native_key == "cheats"
+						else Display.widescreen()
 						if item.native_key == "wide"
 						else Display.is_fullscreen(get_window())
 					)
@@ -149,6 +198,10 @@ func open_menu(name: String) -> void:
 
 
 func _process(delta: float) -> void:
+	AudioSettings.poll_cartridge()
+	if not _settings_modal_open() and not is_instance_valid(_modal):
+		var notice := AudioSettings.take_notice()
+		if not notice.is_empty(): show_unavailable(notice)
 	if catalog == null or menu_state.is_empty() or _transitioning:
 		return
 	_clock += delta
@@ -162,10 +215,10 @@ func _process(delta: float) -> void:
 
 
 func _tick() -> void:
-	if _transitioning or is_instance_valid(_controls_menu) or is_instance_valid(_exit_confirmation):
+	if _transitioning or _settings_modal_open() or is_instance_valid(_exit_confirmation):
 		return
 	_ticks += 1
-	if is_instance_valid(_modal) or is_instance_valid(_text_entry):
+	if is_instance_valid(_modal) or is_instance_valid(_video_menu) or is_instance_valid(_audio_menu) or is_instance_valid(_text_entry):
 		return
 	_idle += 1
 	_consume_input_edges()
@@ -224,7 +277,13 @@ func _apply_menu_input() -> void:
 		var item: Dictionary = _menu_items[index]
 		if item.has("native_key"):
 			var enabled := int(menu_state.items[index].value) == 2
-			if item.native_key == "wide":
+			if item.native_key == "cheats":
+				if not Cheats.set_enabled(enabled):
+					menu_state.items[index].value=before.items[index].value
+					show_unavailable("Could not save Cheats preference")
+				else:
+					_cheats_preference_changed()
+			elif item.native_key == "wide":
 				Display.set_widescreen(enabled)
 				$DisplayOptions/Widescreen.set_pressed_no_signal(enabled)
 			else:
@@ -275,12 +334,13 @@ func _activate(row: int) -> void:
 			else:
 				open_menu("main")
 		"preferences":
-			if row == 3:
-				open_controls()
-			elif row == 4:
-				open_menu("video")
-			else:
-				open_menu("language" if row == 1 else "options")
+			match row:
+				1: open_controls()
+				2: open_video()
+				3: open_audio()
+				4: open_menu("language")
+				5: open_menu("cheat_settings")
+				_: open_menu("options")
 		"language":
 			var choices := Settings.values()
 			choices.language = [69, 70, 68, 83][row - 1]
@@ -297,10 +357,10 @@ func _activate(row: int) -> void:
 				menu_state.chosen = 0
 			else:
 				open_menu("options")
-		"video":
+		"video", "cheat_settings":
 			open_menu("preferences")
 		"multiplayer":
-			if row == 4:
+			if row == 5:
 				open_menu("main")
 				return
 			if not NetworkSettings.load_profile():
@@ -316,6 +376,8 @@ func _activate(row: int) -> void:
 				switch_scene("res://scenes/network_menu/network_menu.tscn")
 			elif row == 3:
 				open_menu("network_setup")
+			elif row == 4:
+				switch_scene("res://scenes/network_menu/admin_profiles.tscn")
 			else:
 				open_menu("main")
 		"network_setup":
@@ -372,19 +434,18 @@ func network_entry_return() -> String:
 
 func show_unavailable(message: String) -> void:
 	menu_state.chosen = 0
-	var dialog := AcceptDialog.new()
+	var dialog := preload("res://scenes/small_notice/small_notice.tscn").instantiate()
 	_modal = dialog
-	dialog.title = "Bloodshot / Battle Frenzy"
-	dialog.dialog_text = message
-	add_child(dialog)
-	dialog.popup_centered()
-	var dismiss := func() -> void:
+	dialog.modal = true
+	dialog.font = source.load_cd_small_font().native_font()
+	dialog.heading = "Bloodshot / Battle Frenzy"
+	dialog.text = message
+	dialog.dismissed.connect(func(_accepted: bool) -> void:
 		_held = 0xffffffff
 		_previous = 0xffffffff
 		_pending = 0xffffffff
-		dialog.queue_free()
-	dialog.confirmed.connect(dismiss)
-	dialog.close_requested.connect(dismiss)
+		_modal = null)
+	add_child(dialog)
 
 
 func start_campaign() -> void:
@@ -422,6 +483,7 @@ func _input(event: InputEvent) -> void:
 	if (
 		_transitioning
 		or is_instance_valid(_modal)
+		or is_instance_valid(_video_menu) or is_instance_valid(_audio_menu)
 		or is_instance_valid(_text_entry)
 		or is_instance_valid(_controls_menu)
 		or is_instance_valid(_exit_confirmation)
@@ -645,7 +707,7 @@ func _go_back() -> void:
 		open_menu("main")
 	elif page == "main":
 		switch_scene("res://scenes/title_screen/title_screen.tscn")
-	elif page == "video":
+	elif page in ["video","cheat_settings","audio_settings"]:
 		open_menu("preferences")
 	elif page == "network_setup":
 		open_menu("multiplayer")
@@ -681,7 +743,15 @@ func _close_credit(cancel: bool) -> void:
 	)
 
 
+func _cheats_preference_changed() -> void:
+	pass # Offline pause navigation marks its owning campaign immediately.
+
+
 func menu_definition(name: String) -> Dictionary:
+	if name == "cheat_settings":
+		return {"row":9,"items":[
+			{"native":"Cheats","native_key":"cheats","choices":2,"address":-3,"values":["Cheats Off","Cheats On"]},
+			{"native":"Back","choices":0,"address":0}]}
 	if name == "multiplayer":
 		return {
 			"row": 9,
@@ -690,6 +760,7 @@ func menu_definition(name: String) -> Dictionary:
 				{"native": "Host Game", "choices": 0, "address": 0},
 				{"native": "Join Game", "choices": 0, "address": 0},
 				{"native": "Network Setup", "choices": 0, "address": 0},
+				{"native": "Administration", "choices": 0, "address": 0},
 				{"native": "Exit", "choices": 0, "address": 0}
 			]
 		}
@@ -727,6 +798,8 @@ func open_exit_confirmation() -> void:
 	if is_instance_valid(_exit_confirmation) or _transitioning:
 		return
 	_reset_controls_edges()
+	if is_instance_valid(_version):
+		_version.hide()
 	_exit_confirmation = load("res://scenes/exit_confirmation/exit_confirmation.tscn").instantiate()
 	_exit_confirmation.cancelled.connect(_cancel_exit)
 	_exit_confirmation.confirmed.connect(_confirm_exit)
@@ -738,6 +811,8 @@ func _cancel_exit() -> void:
 	if is_instance_valid(_exit_confirmation):
 		_exit_confirmation.queue_free()
 	_exit_confirmation = null
+	if is_instance_valid(_version):
+		_version.visible = page == "main"
 	_reset_controls_edges()
 	menu_state.selected = 4
 	_resolve_row(3)
@@ -754,3 +829,43 @@ func _confirm_exit() -> void:
 func quit_game() -> void:
 	# Keep PCM/CD/FM workers alive until the existing lifecycle drains playback.
 	preload("res://scripts/runtime/cd_application_lifecycle.gd").request_quit(get_tree())
+
+
+func open_audio() -> void:
+	if is_instance_valid(_audio_menu): return
+	_reset_controls_edges()
+	_audio_menu = load("res://scenes/audio_settings/audio_settings.tscn").instantiate()
+	_audio_menu.closed.connect(_audio_closed)
+	_audio_menu.navigation.connect(func(): $Audio.play_source(0x2547e))
+	add_child(_audio_menu)
+
+
+func open_video() -> void:
+	if _settings_modal_open(): return
+	_reset_controls_edges()
+	_video_menu = load("res://scenes/video_settings/video_settings.tscn").instantiate()
+	_video_menu.closed.connect(_video_closed)
+	_video_menu.navigation.connect(func(): $Audio.play_source(0x2547e))
+	_video_menu.changed.connect(_video_changed)
+	add_child(_video_menu)
+
+
+func _video_changed() -> void:
+	pass
+
+
+func _video_closed(_saved: bool) -> void:
+	_video_menu = null
+	_reset_controls_edges()
+	_video_changed()
+	queue_redraw()
+
+
+func _settings_modal_open() -> bool:
+	return is_instance_valid(_modal) or is_instance_valid(_audio_menu) or is_instance_valid(_video_menu) or is_instance_valid(_controls_menu)
+
+
+func _audio_closed(_saved: bool) -> void:
+	_audio_menu = null
+	_reset_controls_edges()
+	queue_redraw()

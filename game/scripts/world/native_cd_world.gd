@@ -121,6 +121,10 @@ func load_original(level_path: String = "/LEVEL1.LEV") -> bool:
 		var surface: SurfaceTool = surfaces[key].builder
 		for i: int in range(6):
 			surface.set_uv(atlas.uv(index, uvs[i]))
+			# CD $389C6 sorts projected endpoints before sampling columns;
+			# only the map's pointer flag reverses the artwork. Backfaces need
+			# their own reflected UVs inside this wall's atlas region.
+			surface.set_uv2(atlas.uv(index, Vector2(1.0 - uvs[i].x, uvs[i].y)))
 			surface.add_vertex(vertices[i])
 		collision_faces.append_array(vertices)
 		surfaces[key].faces.append_array(vertices)

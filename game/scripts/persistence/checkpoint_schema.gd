@@ -122,6 +122,7 @@ func validate(state: Dictionary, source_definition: RefCounted) -> bool:
 			state.world,
 			(
 				data.world_fields
+				+ (["music_restart_delay"] if state.world is Dictionary and state.world.has("music_restart_delay") else [])
 				+ (["vs_state"] if state.world is Dictionary and state.world.has("vs_state") else [])
 				+ (["bots"] if state.world is Dictionary and state.world.has("bots") else [])
 				+ (["loot_state"] if state.world is Dictionary and state.world.has("loot_state") else [])
@@ -140,6 +141,8 @@ func validate(state: Dictionary, source_definition: RefCounted) -> bool:
 		return false
 	var world: Dictionary = state.world
 	var system: Dictionary = state.system
+	if world.has("music_restart_delay") and not _int(world.music_restart_delay,1,100,"Music retry delay"):
+		return false
 	if world.has("bots") and not _need(world.has("loot_state") and preload("res://scripts/game/bot_runtime.gd").valid(world.bots,state.players), "Invalid native bot continuation"): return false
 	if not _need(world.has("vs_state") == definition.level.get_meta("battle_mode", false), "Missing or unexpected VS continuation"):
 		return false

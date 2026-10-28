@@ -8,6 +8,7 @@ static var player_name := ""
 static var port := 28760
 static var password := ""  # Deliberately memory-only, including joining passwords.
 static var pins: Dictionary = {}
+static var admin_pins: Dictionary = {}
 static var identity: CryptoKey
 static var certificate: X509Certificate
 static var loaded := false
@@ -38,6 +39,9 @@ static func load_profile() -> bool:
 			last_error = "Network password must use up to 64 printable characters"
 			return false
 	var config := ConfigFile.new()
+	if FileAccess.file_exists(PATH) and not protect(PATH, false):
+		last_error = "Cannot protect network configuration"
+		return false
 	if config.load(PATH) == OK:
 		var name: Variant = config.get_value("network", "name", "")
 		if valid_name(name): player_name = name
@@ -48,16 +52,24 @@ static func load_profile() -> bool:
 			for address: Variant in saved:
 				if address is String and address.length() <= 260 and saved[address] is String and saved[address].length() <= 4096:
 					pins[address] = saved[address]
+		var verified: Variant = config.get_value("network", "admin_pins", {})
+		if verified is Dictionary and verified.size() <= 128:
+			for address: Variant in verified:
+				if address is String and pins.has(address) and verified[address] == pins[address]:
+					admin_pins[address] = pins[address]
 	var directory := ProjectSettings.globalize_path("user://network-private")
 	if DirAccess.make_dir_recursive_absolute(directory) != OK:
 		last_error = "Cannot create private player profile"
 		return false
-	if OS.has_feature("linux") or OS.has_feature("macos"):
-		if FileAccess.set_unix_permissions(directory, 448) != OK: # 0700
-			last_error = "Cannot protect private player profile"
-			return false
+	if not protect(directory, true):
+		last_error = "Cannot protect private player profile"
+		return false
 	identity = CryptoKey.new()
 	if FileAccess.file_exists(KEY_PATH):
+		if not protect(KEY_PATH, false):
+			last_error = "Cannot protect private player identity"
+			identity = null
+			return false
 		if identity.load(KEY_PATH) != OK or identity.is_public_only():
 			last_error = "Cannot read private player identity"
 			identity = null
@@ -69,13 +81,16 @@ static func load_profile() -> bool:
 			identity = null
 			return false
 	# Key ownership relies on the local profile's filesystem permissions.
-	if OS.has_feature("linux") or OS.has_feature("macos"):
-		if FileAccess.set_unix_permissions(KEY_PATH, 384) != OK:
-			last_error = "Cannot protect private player identity"
-			identity = null
-			return false
+	if not protect(KEY_PATH, false):
+		last_error = "Cannot protect private player identity"
+		identity = null
+		return false
 	certificate = X509Certificate.new()
 	if FileAccess.file_exists(CERT_PATH):
+		if not protect(CERT_PATH, false):
+			last_error = "Cannot protect host certificate"
+			certificate = null
+			return false
 		if certificate.load(CERT_PATH) != OK:
 			last_error = "Cannot read host certificate"
 			certificate = null
@@ -97,7 +112,7 @@ static func certificate_text(value: X509Certificate) -> String:
 	# Godot 4.7's save_to_string includes the PEM NUL in its ASCII span.
 	# The file API excludes that terminator; keep this public-only workaround
 	# outside packet loops and never write a private key for serialization.
-	var path := "user://.public-certificate-%d.tmp" % value.get_instance_id()
+	var path := "user://.public-certificate-%d-%s.tmp" % [OS.get_process_id(), Crypto.new().generate_random_bytes(8).hex_encode()]
 	if value.save(path) != OK: return ""
 	var result := FileAccess.get_file_as_string(path)
 	DirAccess.remove_absolute(path)
@@ -109,17 +124,34 @@ static func save() -> bool:
 	config.set_value("network", "name", player_name)
 	config.set_value("network", "port", port)
 	config.set_value("network", "pins", pins)
+	config.set_value("network", "admin_pins", admin_pins)
 	if config.save(PATH + ".tmp") != OK: return false
+	if not protect(PATH + ".tmp", false): return false
 	return DirAccess.rename_absolute(PATH + ".tmp", PATH) == OK
 
 
 static func configure(transport: Node) -> bool:
 	if not load_profile(): return false
+	for name: String in ["player-bans.json", "admins.json", "admin-audit.json"]:
+		for suffix: String in ["", ".tmp"]:
+			var path := "user://network-private/" + name + suffix
+			if FileAccess.file_exists(path) and not protect(path, false):
+				last_error = "Cannot protect private server configuration"
+				return false
 	transport.bans.path = "user://network-private/player-bans.json"
+	transport.admin_acl.path = "user://network-private/admins.json"
 	transport.identity_key = identity
 	transport.host_certificate = certificate
 	transport.player_name = player_name
 	transport.password = password
 	transport.trusted_servers = pins
+	transport.verified_servers = admin_pins
 	transport.trust_saved = save
 	return true
+
+
+static func protect(path: String, directory: bool) -> bool:
+	# Native handles enforce owner-only Windows DACLs and Unix 0700/0600,
+	# rejecting symlinks/reparse points and unexpected filesystem ownership.
+	if not ClassDB.class_exists("BloodshotPrivateFiles"): return false
+	return ClassDB.instantiate("BloodshotPrivateFiles").protect(ProjectSettings.globalize_path(path), directory) == OK

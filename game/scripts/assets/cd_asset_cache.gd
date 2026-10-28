@@ -10,6 +10,7 @@ const HEADER := 88
 const MAX_BYTES := 256 * 1024 * 1024
 const MAX_NODES := 65536
 const DECODER_DEPENDENCIES := [
+	"res://scripts/audio/md_audio_catalog.gd",
 	"res://scripts/presentation/cd_hud_model.gd",
 	"res://scripts/presentation/cd_menu_palette.gd",
 	"res://scripts/presentation/cd_text_noise.gd",

@@ -76,6 +76,22 @@ func _colors(bank: int, indexed: bool) -> PackedColorArray:
 	return result
 
 
+func menu_slider_texture(tile: int, ink: Color) -> Texture2D:
+	# MAINOS $C1A..$CBA: two rail/handle pairs and a solid background tile.
+	# Their original consumer/palette is unknown. This native reuse maps original
+	# ink indices 1/2 to the input-menu ink and makes index 15 transparent.
+	if tile < 0 or tile > 3: return null
+	var key := "native_slider:%d:%s" % [tile, ink.to_html()]
+	if not _textures.has(key):
+		var colors := PackedColorArray()
+		colors.resize(16)
+		colors.fill(Color.TRANSPARENT)
+		colors[1] = ink
+		colors[2] = ink
+		_textures[key] = ImmutableTexture.create(tile_image(_main, 0xc1a + tile * 32, colors))
+	return _textures[key]
+
+
 ## A single source tile is an eight-row, high-nibble-first image. All flips are
 ## resolved here into native pixels; runtime nodes never interpret tile hardware.
 static func tile_image(

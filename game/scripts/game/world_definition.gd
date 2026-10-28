@@ -65,5 +65,5 @@ func load_manifest(source: RefCounted, manifest: Dictionary) -> bool:
 	else:
 		loaded = load_from_source(source, int(path.trim_prefix("/LEVEL").trim_suffix(".LEV")))
 	if loaded:
-		set_meta("session_flow", manifest.get("protocol", 6) in [9, 10, 11, 12, 13, 14, 15])
+		set_meta("session_flow", manifest.get("protocol", 6) in [9, 10, 11, 12, 13, 14, 15, 16])
 	return loaded

@@ -98,11 +98,18 @@ func configure(
 		apply_pause_state(
 			preload("res://scripts/frontend/cd_pause_rules.gd").after_level_load(state), false
 		)
+	sync_score_policy()
 	bind_world()
 	refresh_views(true)
 
 
 func bind_world() -> void:
+	# Native play fixes source projectile tunneling. Demo/reference playback
+	# keeps the original endpoint/lookahead routine, including after restore.
+	if world.actor_system != null:
+		world.actor_system.native_swept_hits = world.demo_recording.is_empty()
+		if world.actor_system.native_swept_hits:
+			preload("res://scripts/simulation/cd_projectile_flight.gd").prepare_native_geometry(world.level)
 	for player: RefCounted in world.players:
 		player.controls = Admission.controls.bind(weakref(world), player.handle)
 		player.aim_rate = Admission.rate.bind(weakref(world), player.handle)
@@ -389,6 +396,9 @@ func restore_checkpoint(bytes: PackedByteArray, source: RefCounted = null) -> bo
 
 func install_checkpoint(candidate: RefCounted) -> void:
 	# Scene adapters may prevalidate a candidate before rebuilding native views.
+	var old_cheats := campaign.cheats_ever_enabled
+	var old_eligible := campaign.score_eligible
+	var preserve_history: bool = world.stop_when_exhausted and candidate.stop_when_exhausted
 	world._adopt_checkpoint(candidate)
 	_view_key = []
 	_endpoints.clear()
@@ -407,8 +417,25 @@ func install_checkpoint(candidate: RefCounted) -> void:
 		)
 		world.campaign_state = campaign.describe()
 		campaign.restore(world.campaign_state)
+	if preserve_history:
+		if old_cheats:
+			campaign.disable_scoring_for_cheats()
+		campaign.score_eligible = campaign.score_eligible and old_eligible
+	sync_score_policy()
 	bind_world()
 	refresh_views(true)
+
+
+func sync_score_policy() -> void:
+	# Derived from durable campaign history, never the local access switch.
+	if world.actor_system == null:
+		return
+	world.actor_system.scoring_disabled = (
+		campaign.cheats_ever_enabled and world.stop_when_exhausted
+		and not world.demo_mode and not world.actor_system.native_multiplayer
+	)
+	if world.actor_system.scoring_disabled:
+		world.actor_system.encounter.damage_total = 0
 
 
 func release_controls(flush_latch: bool) -> void:

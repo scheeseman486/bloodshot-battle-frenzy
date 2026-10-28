@@ -13,6 +13,9 @@ var _peak_players := 0
 var _maximum_debt := 0
 var _maximum_frame_usec := 0
 var _asset_load_usec := 0
+var _console: RefCounted
+var _console_input: RefCounted
+var _input_closed := false
 
 
 func _ready() -> void:
@@ -42,7 +45,7 @@ func _ready() -> void:
 	if not loaded:
 		_fail("Cannot load original level")
 		return
-	definition.set_meta("session_flow", versus)
+	definition.set_meta("session_flow", true)
 	_asset_load_usec = Time.get_ticks_usec() - asset_started
 	endpoint = preload("res://scripts/network/replication_peer.gd").new()
 	add_child(endpoint)
@@ -61,10 +64,12 @@ func _ready() -> void:
 		var server := preload("res://scripts/game/game_server.gd").new()
 		server.configure(definition, false)
 		success = endpoint.host(server, int(options.port), str(options.get("bind", "127.0.0.1")))
-		if versus and success:
-			endpoint.coop.session = {"enabled": true, "mode": "versus", "lobby": false, "map": arena}
+		if success:
+			endpoint.coop.source = source
+			endpoint.coop.session = {"enabled": true, "mode": "versus" if versus else "coop", "lobby": false,
+				"map": arena if versus else "level-%d" % int(options.get("level", "1"))}
 			endpoint.coop.kill_limit = limit
-			server.world.vs_state.limit = limit
+			if versus: server.world.vs_state.limit = limit
 	if not success:
 		_fail(endpoint.last_error)
 		return
@@ -82,6 +87,12 @@ func _ready() -> void:
 		" UDP ",
 		options.port
 	)
+	if not options.has("probe-client") and not options.has("no-console"):
+		_console = preload("res://scripts/network/server_console.gd").new()
+		_console.endpoint = endpoint
+		_console.shutdown_requested.connect(_finish, CONNECT_DEFERRED)
+		_console_input = ClassDB.instantiate("BloodshotConsoleInput")
+		for line: String in _console.help_text(): print(line)
 
 
 func _process(_delta: float) -> void:
@@ -99,11 +110,21 @@ func _process(_delta: float) -> void:
 		_probed = true
 	_previous = now
 	_maximum_frame_usec = maxi(_maximum_frame_usec, Time.get_ticks_usec() - now)
+	if _console != null:
+		if not _input_closed:
+			var input: Dictionary = _console_input.poll()
+			_input_closed = input.eof
+			if not str(input.error).is_empty(): print("Console: ", input.error)
+			for line: String in _console.feed(input.bytes, input.eof): print(line)
+		# All actions run after pump/advance, never inside a simulation update.
+		for line: String in _console.drain(): print(line)
+	if _closing: return
 	if _deadline > _started and now >= _deadline:
 		_finish()
 
 
 func _finish() -> void:
+	if _closing: return
 	_closing = true
 	var report := {
 		"phase": endpoint.phase,
@@ -132,7 +153,7 @@ func _finish() -> void:
 	if not versus_state.is_empty():
 		report.versus = {"phase": versus_state.phase, "limit": versus_state.limit, "rows": versus_state.rows.size()}
 	var success: bool = (
-		endpoint.last_error.is_empty()
+		endpoint.phase != "rejected" and endpoint.transport.last_error.is_empty()
 		and (endpoint.authority != null or (_probed and endpoint.finalized_command > 0))
 	)
 	if options.has("report"):

@@ -1,0 +1,376 @@
+{
+  "schema": 1,
+  "rom_sha256": "e47e35f9e4bb4e42998b814e81dd91d8a5b2941496a989cab3b7afd27ea2667b",
+  "cd_sha256": "fad81e1ffbc4fea03c478e26f6762fe0b24dcf7a81541023466add29ffca2c31",
+  "effects": [
+    {
+      "cd_index": 0,
+      "cd_source_id": 52718,
+      "cd_label": "laser1",
+      "md_sequence": 1,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 1,
+      "cd_source_id": 56466,
+      "cd_label": "laser2",
+      "md_sequence": 2,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 2,
+      "cd_source_id": 60754,
+      "cd_label": "laser3",
+      "md_sequence": 3,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 3,
+      "cd_source_id": 65826,
+      "cd_label": "laser4",
+      "md_sequence": null,
+      "policy": "cd_fallback",
+      "basis": "Shared CD weapon/shield sample has different ROM consumers (3 and 4)."
+    },
+    {
+      "cd_index": 4,
+      "cd_source_id": 68888,
+      "cd_label": "laser5",
+      "md_sequence": 5,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 5,
+      "cd_source_id": 72144,
+      "cd_label": "laser6",
+      "md_sequence": 6,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 6,
+      "cd_source_id": 76452,
+      "cd_label": "laser7",
+      "md_sequence": 7,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 7,
+      "cd_source_id": 80358,
+      "cd_label": "laser8",
+      "md_sequence": 8,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 8,
+      "cd_source_id": 82976,
+      "cd_label": "laser9",
+      "md_sequence": 9,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 9,
+      "cd_source_id": 87000,
+      "cd_label": "laser10",
+      "md_sequence": 10,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 10,
+      "cd_source_id": 91258,
+      "cd_label": "enemhit",
+      "md_sequence": 16,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 11,
+      "cd_source_id": 97420,
+      "cd_label": "pickup",
+      "md_sequence": 11,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 12,
+      "cd_source_id": 100096,
+      "cd_label": "welcome",
+      "md_sequence": 0,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 13,
+      "cd_source_id": 105824,
+      "cd_label": "roar1",
+      "md_sequence": 17,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 14,
+      "cd_source_id": 108234,
+      "cd_label": "roar2",
+      "md_sequence": 18,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 15,
+      "cd_source_id": 110916,
+      "cd_label": "roar3",
+      "md_sequence": 19,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 16,
+      "cd_source_id": 113584,
+      "cd_label": "roar4",
+      "md_sequence": null,
+      "policy": "cd_fallback",
+      "basis": "Shared CD roar/projectile sample has different ROM consumers (20 and 19)."
+    },
+    {
+      "cd_index": 17,
+      "cd_source_id": 116182,
+      "cd_label": "playhit",
+      "md_sequence": 13,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 18,
+      "cd_source_id": 117818,
+      "cd_label": "playdie",
+      "md_sequence": 14,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 19,
+      "cd_source_id": 119814,
+      "cd_label": "scream1",
+      "md_sequence": 23,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 20,
+      "cd_source_id": 121582,
+      "cd_label": "scream2",
+      "md_sequence": 24,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 21,
+      "cd_source_id": 123940,
+      "cd_label": "scream3",
+      "md_sequence": 25,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 22,
+      "cd_source_id": 126430,
+      "cd_label": "scream4",
+      "md_sequence": 26,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 23,
+      "cd_source_id": 128810,
+      "cd_label": "yeah",
+      "md_sequence": 12,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 24,
+      "cd_source_id": 133982,
+      "cd_label": "time",
+      "md_sequence": 35,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 25,
+      "cd_source_id": 135794,
+      "cd_label": "oxypick",
+      "md_sequence": 32,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 26,
+      "cd_source_id": 138394,
+      "cd_label": "keypick",
+      "md_sequence": 31,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 27,
+      "cd_source_id": 141788,
+      "cd_label": "plashit",
+      "md_sequence": 37,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 28,
+      "cd_source_id": 143916,
+      "cd_label": "plasmaex",
+      "md_sequence": 38,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 29,
+      "cd_source_id": 150884,
+      "cd_label": "teletype",
+      "md_sequence": 21,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 30,
+      "cd_source_id": 152702,
+      "cd_label": "white",
+      "md_sequence": 22,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 31,
+      "cd_source_id": 153388,
+      "cd_label": "doorop",
+      "md_sequence": 27,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 32,
+      "cd_source_id": 160658,
+      "cd_label": "doorcl",
+      "md_sequence": 28,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 33,
+      "cd_source_id": 164752,
+      "cd_label": "chgweap",
+      "md_sequence": 15,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 34,
+      "cd_source_id": 165692,
+      "cd_label": "pause",
+      "md_sequence": 33,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 35,
+      "cd_source_id": 170938,
+      "cd_label": "nokey",
+      "md_sequence": 30,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    },
+    {
+      "cd_index": 36,
+      "cd_source_id": 173380,
+      "cd_label": "keyactiv",
+      "md_sequence": 29,
+      "policy": "cartridge",
+      "basis": "Direct event-role pairing, checked against source labels and weapon/actor tables."
+    }
+  ],
+  "context_fallbacks": [
+    {
+      "cue": "core_unlock",
+      "cd_source_id": 76452,
+      "reason": "CD final-satellite extra cue has no identified cartridge event; preserve CD presentation."
+    }
+  ],
+  "ambient": {
+    "backing_sequences": [
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111
+    ],
+    "bleeps_sequence": 56,
+    "bus": "Music",
+    "cd_level_variants": [
+      1,
+      1,
+      2,
+      2,
+      3,
+      4,
+      5,
+      5,
+      6,
+      7,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "carry_forward_cd_levels": [
+      2,
+      4,
+      8,
+      11
+    ]
+  },
+  "excluded_gameplay_sequences": [
+    34,
+    36,
+    39
+  ],
+  "frontend_music": {
+    "cd_track_2": 50,
+    "cd_track_3": 60,
+    "source": "Original PAL boot/menu traces, mega-drive-audio-audit.md",
+    "bleeps": false
+  },
+  "countdown": {
+    "music_md": "retain current level backing and Bleeps",
+    "music_cd": "canonical CD escape track",
+    "effects_md": {
+      "sequence": 35,
+      "source_id": 133982,
+      "source_boundary_divisor": 50,
+      "source_call_return": 6060,
+      "delivery": "local authoritative view boundaries; seed epoch/attachment; no catch-up burst"
+    },
+    "effects_cd": "unchanged CD effects",
+    "expiry_sequence_36": "retains existing explicit exclusion; CD death/recovery semantics"
+  }
+}

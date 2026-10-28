@@ -34,7 +34,7 @@ func _ready() -> void:
 		show_error(source.last_error)
 		return
 	_font = font_catalog.native_font()
-	$Canvas.theme = SmallTheme.make(_font)
+	$Canvas.theme = SmallTheme.with_source_sliders(_font, catalog.ui)
 	$Canvas/Panel.add_theme_stylebox_override(
 		"panel", SmallTheme.box(Color(0.015, 0.025, 0.045, 0.98), SmallTheme.ACCENT)
 	)
@@ -147,6 +147,8 @@ func _build_actions() -> void:
 	var list := _scroll(Rect2(0, 0, 240, 132))
 	for index: int in range(Model.ACTIONS.size()):
 		var action: String = Model.ACTIONS[index]
+		if page == "gamepad" and action.begins_with("weapon_slot_"):
+			continue
 		var row := HBoxContainer.new()
 		list.add_child(row)
 		var label := Label.new()

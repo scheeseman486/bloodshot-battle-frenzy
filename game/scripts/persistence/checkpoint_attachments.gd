@@ -39,6 +39,7 @@ func capture(scene: Node) -> Dictionary:
 	var campaign := {}
 	for field: String in CAMPAIGN_FIELDS:
 		campaign[field] = scene.get(field)
+	campaign.cheats_ever_enabled=scene.server.campaign.cheats_ever_enabled
 	campaign._transition_carry = campaign._transition_carry.duplicate(true)
 	campaign.card = {}
 	if is_instance_valid(scene._campaign_transition):
@@ -107,12 +108,14 @@ func validate(campaign: Variant, presentation: Variant, schema: RefCounted) -> b
 	):
 		return false
 	if not campaign.is_empty():
-		if not schema._shape(campaign, CAMPAIGN_FIELDS + ["card"], "campaign"):
+		if not schema._shape(campaign, CAMPAIGN_FIELDS + ["card"] + (["cheats_ever_enabled"] if campaign.has("cheats_ever_enabled") else []), "campaign"):
 			return false
 		if (
 			not schema._int(campaign.level_number, 0 if schema.definition.level.get_meta("battle_mode",false) else 1, 16, "campaign level")
 			or not schema._int(campaign.continue_credits, -32768, 32767, "continue credits")
 		):
+			return false
+		if campaign.has("cheats_ever_enabled") and not schema._need(campaign.cheats_ever_enabled is bool,"Historical cheats flag must be boolean"):
 			return false
 		for flag: String in [
 			"_transition_pending", "score_eligible", "cheated", "_game_over_presented", "paused"
@@ -176,6 +179,7 @@ func validate(campaign: Variant, presentation: Variant, schema: RefCounted) -> b
 				card.result,
 				(
 					["level", "kills", "bonuses", "tally", "credits"]
+					+ (["scoring_disabled"] if card.result is Dictionary and card.result.has("scoring_disabled") else [])
 					+ (
 						["players"]
 						if card.result is Dictionary and card.result.has("players")
@@ -184,6 +188,8 @@ func validate(campaign: Variant, presentation: Variant, schema: RefCounted) -> b
 				),
 				"card result"
 			):
+				return false
+			if card.result.has("scoring_disabled") and not schema._need(card.result.scoring_disabled is bool,"Card scoring flag must be boolean"):
 				return false
 			if (
 				card.result.has("players")
@@ -199,7 +205,7 @@ func validate(campaign: Variant, presentation: Variant, schema: RefCounted) -> b
 			if not schema._int(card.page_index, 0, pages - 1, "Card page"):
 				return false
 			for key: String in card.result:
-				if key == "players":
+				if key in ["players", "scoring_disabled"]:
 					continue
 				if not schema._int(card.result[key], -2147483648, 0xffffffff, "card result scalar"):
 					return false
@@ -374,11 +380,12 @@ func restore_campaign(scene: Node, campaign: Dictionary) -> void:
 	# rebuilding must not call _tick or grant a fresh card timeout.
 	for field: String in CARD_FIELDS:
 		card.set(field, state[field])
+	if bool(campaign.get("cheats_ever_enabled",false)):card.result.scoring_disabled=true
 	card.pages = card.catalog.campaign_pages(
 		int(state.result.level),
 		int(state.result.kills),
 		int(state.result.bonuses),
-		rules.power_rating(int(state.result.tally)),
+		0 if bool(state.result.get("scoring_disabled",false)) else rules.power_rating(int(state.result.tally)),
 		bool(state._summary)
 	)
 	card.layout = {}
@@ -388,6 +395,7 @@ func restore_campaign(scene: Node, campaign: Dictionary) -> void:
 			card.pages[int(state.page_index)],
 			int(preload("res://scripts/frontend/cd_frontend_settings.gd").values().language)
 		)
+		card.refresh_score_layout()
 		if int(state._closing) > 0:
 			card.clearing_text = (
 				card

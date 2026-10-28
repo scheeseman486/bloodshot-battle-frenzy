@@ -412,9 +412,14 @@ func _rebuild() -> void:
 		if receipts.has(command.sequence):
 			event.tick = receipts[command.sequence]
 		event.tick = maxi(start, int(event.tick))
-		if event.controls != previous_controls:
+		# Native weapon tokens are ordered commands, not held source controls.
+		# Do not spread a rapid wheel burst across synthetic input periods.
+		var source_changed: bool = preload("res://scripts/input/native_weapon_selection.gd").source_changed(event.controls, previous_controls)
+		if source_changed:
 			event.tick = maxi(int(event.tick), last_control_tick + 4)
 			last_control_tick = int(event.tick)
+		else:
+			event.tick = maxi(int(event.tick), last_control_tick)
 		previous_controls = event.controls.duplicate()
 		events.append(event)
 	events.sort_custom(
@@ -447,6 +452,10 @@ func _replay(first: int, last: int) -> void:
 
 func _apply(command: Dictionary) -> void:
 	if _vs_stopped(): return
+	var selection = preload("res://scripts/input/native_weapon_selection.gd")
+	var action: int = selection.take(_latch, int(command.controls.held))
+	if action != 0 and int(motion.state) == 1:
+		weapons = selection.apply(weapons, action).state
 	if (int(command.controls.held) & 16) == 0 and (int(_controls.held) & 16) != 0:
 		_action = int(command.sequence)
 		_shot_index = 0

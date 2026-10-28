@@ -14,7 +14,7 @@ var _actor_rules: Dictionary = {}
 
 func manifest(definition: RefCounted) -> Dictionary:
 	return {
-		"protocol": 15 if definition.get_meta("session_flow", false) else 6,
+		"protocol": 16 if definition.get_meta("session_flow", false) else 6,
 		"input_compression":
 		int(preload("res://scripts/network/command_codec.gd").compression_available()),
 		"schema": 4,

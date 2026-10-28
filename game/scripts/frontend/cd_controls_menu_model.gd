@@ -10,7 +10,17 @@ const ACTIONS := [
 	"turn_left",
 	"turn_right",
 	"fire",
-	"cycle_weapon",
+	"next_weapon",
+	"previous_weapon",
+	"weapon_slot_1",
+	"weapon_slot_2",
+	"weapon_slot_3",
+	"weapon_slot_4",
+	"weapon_slot_5",
+	"weapon_slot_6",
+	"weapon_slot_7",
+	"weapon_slot_8",
+	"weapon_slot_9",
 	"use",
 	"pause",
 	"look_left",
@@ -25,7 +35,17 @@ const LABELS := [
 	"Turn left",
 	"Turn right",
 	"Fire",
-	"Cycle weapon",
+	"Next weapon",
+	"Previous weapon",
+	"Weapon slot 1",
+	"Weapon slot 2",
+	"Weapon slot 3",
+	"Weapon slot 4",
+	"Weapon slot 5",
+	"Weapon slot 6",
+	"Weapon slot 7",
+	"Weapon slot 8",
+	"Weapon slot 9",
 	"Activate / use",
 	"Pause",
 	"Aim left",
@@ -115,6 +135,9 @@ func begin_capture(
 ) -> void:
 	if action not in ACTIONS or family not in ["keyboard", "gamepad"]:
 		return
+	if action.begins_with("weapon_slot_") and family != "keyboard":
+		status = "Weapon slot shortcuts use keyboard keys only."
+		return
 	if family == "gamepad" and device < 0:
 		status = "Connect a gamepad to add a binding."
 		return
@@ -166,8 +189,8 @@ func capture_event(event: InputEvent) -> bool:
 			}
 	if binding.is_empty():
 		return true
-	if not InputSettings._valid_binding(binding):
-		status = "Reserved input. Use a key or held button; Escape cancels."
+	if not InputSettings.valid_action_binding(capture_action, binding):
+		status = "Input unavailable for this action. Escape cancels."
 		return true
 	_accept(binding)
 	return true
@@ -238,6 +261,8 @@ static func binding_label(binding: Dictionary) -> String:
 					MOUSE_BUTTON_LEFT: "Mouse left",
 					MOUSE_BUTTON_RIGHT: "Mouse right",
 					MOUSE_BUTTON_MIDDLE: "Mouse middle",
+					MOUSE_BUTTON_WHEEL_UP: "Wheel up",
+					MOUSE_BUTTON_WHEEL_DOWN: "Wheel down",
 					MOUSE_BUTTON_XBUTTON1: "Mouse side 1",
 					MOUSE_BUTTON_XBUTTON2: "Mouse side 2"
 				}

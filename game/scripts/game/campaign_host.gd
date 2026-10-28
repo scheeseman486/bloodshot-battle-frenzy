@@ -10,6 +10,7 @@ var _state: Dictionary = {
 	"continue_credits": 3,
 	"score_eligible": true,
 	"cheated": false,
+	"cheats_ever_enabled": false,
 	"_game_over_presented": false,
 	"paused": false,
 	"card": {}
@@ -44,6 +45,11 @@ var cheated: bool:
 		return _state.cheated
 	set(value):
 		_state.cheated = value
+var cheats_ever_enabled: bool:
+	get:
+		return bool(_state.get("cheats_ever_enabled", false))
+
+
 var _game_over_presented: bool:
 	get:
 		return _state._game_over_presented
@@ -56,10 +62,15 @@ var paused: bool:
 		_state.paused = value
 
 
+func disable_scoring_for_cheats() -> void:
+	_state.cheats_ever_enabled = true
+	score_eligible = false
+
+
 func begin(session: RefCounted, exhausted: bool) -> Dictionary:
 	_transition_pending = true
 	_transition_carry = Carry.capture(session)
-	return {
+	var result := {
 		"kind": "ending" if exhausted else Rules.destination(level_number),
 		"phase": "continue" if exhausted else "clear",
 		"result":
@@ -71,6 +82,10 @@ func begin(session: RefCounted, exhausted: bool) -> Dictionary:
 			"credits": continue_credits
 		}
 	}
+
+	if cheats_ever_enabled:
+		result.result.scoring_disabled = true
+	return result
 
 
 func complete(action: String, session: RefCounted) -> Dictionary:
@@ -91,8 +106,8 @@ func complete(action: String, session: RefCounted) -> Dictionary:
 		return {
 			"kind": "scores",
 			"level": level_number,
-			"rating": Rules.power_rating(int(session.actor_system.encounter.damage_total)),
-			"ineligible": not score_eligible or cheated
+			"rating": 0 if cheats_ever_enabled else Rules.power_rating(int(session.actor_system.encounter.damage_total)),
+			"ineligible": not score_eligible or cheated or cheats_ever_enabled
 		}
 	return {}
 
@@ -104,3 +119,7 @@ func describe() -> Dictionary:
 func restore(state: Dictionary) -> void:
 	# Bind the complete authoritative record; no second mutable campaign owner.
 	_state = state
+	if not _state.has("cheats_ever_enabled"):
+		_state.cheats_ever_enabled = bool(_state.get("cheated", false))
+	if cheats_ever_enabled:
+		score_eligible = false

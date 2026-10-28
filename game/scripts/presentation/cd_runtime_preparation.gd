@@ -6,6 +6,7 @@ const Navigation = preload("res://scripts/game/bot_navigation.gd")
 const Actor = preload("res://scenes/actors/cd_actor.gd")
 const Colours = preload("res://scripts/presentation/player_colours.gd")
 const CANVAS_SHADERS := {
+	"cd_sharp_bilinear":preload("res://shaders/cd_sharp_bilinear.gdshader"),
 	"cd_palette_ui":preload("res://shaders/cd_palette_ui.gdshader"),
 	"cd_menu_background":preload("res://shaders/cd_menu_background.gdshader"),
 	"cd_menu_text_static":preload("res://shaders/cd_menu_text_static.gdshader")
@@ -34,7 +35,7 @@ static func prepare(source: RefCounted, progress: Callable = Callable()) -> bool
 	var started := Time.get_ticks_usec()
 	# Keep scene resources and their complete script/shader dependency graphs
 	# resident too. Parsing them on the first match is still first-use work.
-	for path: String in ["res://scenes/gameplay/gameplay.tscn", "res://scenes/campaign/campaign.tscn", "res://scenes/network_gameplay/network_gameplay.tscn"]:
+	for path: String in ["res://scenes/gameplay/gameplay.tscn", "res://scenes/campaign/campaign.tscn", "res://scenes/network_gameplay/network_gameplay.tscn", "res://scenes/audio_settings/audio_settings.tscn", "res://scenes/video_settings/video_settings.tscn", "res://scenes/small_notice/small_notice.tscn"]:
 		var scene := load(path) as PackedScene
 		if scene == null:
 			source.last_error = "Could not prepare gameplay scenes"
@@ -63,10 +64,16 @@ static func prepare(source: RefCounted, progress: Callable = Callable()) -> bool
 	viewport.add_child(billboard_pass)
 	billboard_pass.configure(camera)
 	var font: FontFile = source.load_cd_small_font().native_font()
+	var menu_ui: RefCounted = source.load_cd_frontend_catalog().ui
+	var menu_theme := preload("res://scripts/frontend/native_small_theme.gd")
+	for index: int in range(4):
+		for ink: Color in [menu_theme.INK, menu_theme.ACCENT]:
+			menu_ui.menu_slider_texture(index, ink)
 	var text := Label.new()
 	text.text = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	text.add_theme_font_override("font",font)
 	text.add_theme_font_size_override("font_size",12)
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(text)
 	viewport.add_child(text)
 	for path: String in paths:
 		if progress.is_valid(): progress.call("Preparing maps and graphics", stats.maps,20)
@@ -150,7 +157,7 @@ static func prepare(source: RefCounted, progress: Callable = Callable()) -> bool
 				var menu_palette := preload("res://scripts/presentation/cd_menu_palette.gd").new()
 				menu_palette.configure(frontend.noise_targets())
 				ink.set_shader_parameter("colour_palette", menu_palette.texture)
-			else:
+			elif shader == "cd_menu_text_static":
 				ink.set_shader_parameter("static_pattern",ui.text_noise_pattern(0))
 			image.material = ink
 			viewport.add_child(image)

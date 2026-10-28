@@ -228,6 +228,8 @@ func sample_controls(controls: Variant) -> void:
 	var native_keyboard := controls is Dictionary
 	_native_keyboard_controls = native_keyboard
 	var held: int = int(controls.held) if native_keyboard else int(controls)
+	if native_keyboard and not demo_mode:
+		select_native_weapon(held)
 	var flash := PlayerFlash.advance(fighter, tables.player_flashes)
 	fighter = flash.state
 	if not flash.writes.is_empty():
@@ -248,6 +250,21 @@ func sample_controls(controls: Variant) -> void:
 		if native_keyboard
 		else Inputs.sample(input_state, control_scheme)
 	)
+
+
+func select_native_weapon(held: int) -> void:
+	var selection = preload("res://scripts/input/native_weapon_selection.gd")
+	var action: int = selection.take(latch, held)
+	if action == 0 or demo_mode or int(fighter.state) != 1 or is_game_over() or is_complete():
+		return
+	var result: Dictionary = selection.apply(weapon_state, action)
+	weapon_state = result.state
+	last_events.append_array(result.events)
+	for event: Dictionary in result.events:
+		if event.kind == "weapon_selected":
+			fighter = StatusOverlay.selection(fighter, weapon_state)
+		elif event.kind == "sound":
+			audio_requested.emit({"kind": "sample", "source_id": int(event.source_id)})
 
 
 func sample_demo_record(held: int, edge: int) -> void:

@@ -17,6 +17,12 @@ var received: Array = []
 var _connections: Dictionary = {}
 var identities: Dictionary = {}
 var bans := preload("res://scripts/network/player_bans.gd").new()
+var admin_acl := preload("res://scripts/network/admin_acl.gd").new()
+var purpose := "play"
+var verified_servers: Dictionary = {} # Explicitly imported pins, distinct from ordinary TOFU.
+var admin_enabled := false
+var admin_secure := false
+var _auth_window := {"at": 0, "count": 0}
 var _pending: Dictionary = {}
 var _native_ids: Dictionary = {}
 var _next_id := 2
@@ -42,6 +48,8 @@ var received_bytes := 0
 var largest_packet := 0
 var last_error := ""
 var rejected_channels := 0
+var oversized_packets := 0
+var largest_received_packet := 0
 
 
 func supports_background_encoding() -> bool:
@@ -53,6 +61,7 @@ func listen(number: int, address: String = "127.0.0.1") -> bool:
 	if not bans.load_list():
 		last_error = bans.last_error
 		return false
+	admin_acl.reload() # Invalid ACL disables admin, but local recovery/gameplay remain.
 	if host_certificate == null:
 		if _test_host_key == null:
 			_test_host_key = Crypto.new().generate_rsa(2048)
@@ -65,6 +74,7 @@ func listen(number: int, address: String = "127.0.0.1") -> bool:
 	_server = true
 	peer = ENetConnection.new()
 	var error := peer.create_host_bound(address, number, 8, CHANNELS + 2)
+	admin_secure = hardened_engine(peer)
 	if error == OK: error = peer.dtls_server_setup(TLSOptions.server(identity_key, host_certificate))
 	return _opened(error)
 
@@ -74,6 +84,15 @@ func connect_to(address: String, number: int) -> bool:
 	_address = address.to_lower().strip_edges()
 	_port = number
 	_pin = str(trusted_servers.get(_trust_address(), ""))
+	admin_enabled = verified_servers.has(_trust_address()) and verified_servers[_trust_address()] == _pin and not _pin.is_empty()
+	if not hardened_engine(ENetConnection.new()):
+		admin_enabled = false
+		if purpose == "manage":
+			last_error = "Administration requires the hardened Bloodshot engine"
+			return false
+	if purpose not in ["play", "manage"] or (purpose == "manage" and not admin_enabled):
+		last_error = "Administration requires an explicitly trusted server profile"
+		return false
 	if identity_key == null: identity_key = Crypto.new().generate_rsa(2048)
 	_started = Time.get_ticks_msec()
 	return _client_socket()
@@ -83,6 +102,7 @@ func _client_socket() -> bool:
 	_server = false
 	peer = ENetConnection.new()
 	var error := peer.create_host(1, CHANNELS + 2)
+	admin_secure = hardened_engine(peer)
 	var options := TLSOptions.client_unsafe()  # Discovery ONLY. Never send credentials here.
 	if not _pin.is_empty():
 		var certificate := X509Certificate.new()
@@ -121,9 +141,9 @@ func _raw_connected(remote: ENetPacketPeer) -> void:
 	if _server: _next_id += 1
 	_native_ids[remote.get_instance_id()] = id
 	var nonce := Crypto.new().generate_random_bytes(32).hex_encode()
-	_pending[id] = {"remote": remote, "nonce": nonce, "at": Time.get_ticks_msec(), "stage": "auth"}
+	_pending[id] = {"remote": remote, "nonce": nonce, "at": Time.get_ticks_msec(), "stage": "auth", "messages": 0}
 	if _server:
-		_raw_send(remote, {"type": "certificate", "certificate": _certificate_text, "nonce": nonce})
+		_raw_send(remote, {"type": "certificate", "certificate": _certificate_text, "nonce": nonce, "version": 2})
 
 
 func _raw_send(remote: ENetPacketPeer, value: Dictionary) -> void:
@@ -133,16 +153,23 @@ func _raw_send(remote: ENetPacketPeer, value: Dictionary) -> void:
 
 func _authentication(id: int, bytes: PackedByteArray) -> void:
 	if not _pending.has(id) or bytes.size() > AUTH_MAX: return
-	for byte: int in bytes:
-		if byte < 32 or byte > 126: return # JSON.stringify escapes all non-ASCII/control fields.
-	var message: Variant = JSON.parse_string(bytes.get_string_from_ascii())
-	if not message is Dictionary: return
+	var pending: Dictionary = _pending[id]
+	pending.messages += 1
+	if pending.messages > 16:
+		disconnect_peer(id)
+		return
+	var message: Variant = preload("res://scripts/network/bounded_json.gd").decode(bytes, AUTH_MAX)
+	if not message is Dictionary or not message.get("type") is String: return
 	var row: Dictionary = _pending[id]
 	var remote: ENetPacketPeer = row.remote
 	if _server:
 		if row.stage == "begin" and message == {"type": "begin"}:
 			if bans.contains(str(identities.get(id, {}).get("key", ""))):
 				reject_peer(id, "Player banned")
+				return
+			var principal: Dictionary = identities.get(id, {})
+			if principal.get("purpose") == "manage" and (not admin_secure or not admin_acl.allows(principal.key)):
+				reject_peer(id, "Join denied")
 				return
 			row.stage = "live"
 			_connections[id] = remote
@@ -157,13 +184,21 @@ func _authentication(id: int, bytes: PackedByteArray) -> void:
 			window.count += 1
 			if _attempts.size() < 128 or _attempts.has(address): _attempts[address] = window
 			var principal := {}
-			if _attempts.has(address) and int(window.count) <= 16:
-				principal = Auth.verify(message, row.nonce, _certificate_text, password)
+			var now := Time.get_ticks_msec()
+			if now - int(_auth_window.at) >= 1000: _auth_window = {"at": now, "count": 0}
+			_auth_window.count += 1
+			if _attempts.has(address) and int(window.count) <= 16 and int(_auth_window.count) <= 8:
+				principal = Auth.verify(message, row.nonce, _certificate_text, password, 2)
 			if not principal.is_empty() and bans.contains(principal.key):
 				reject_peer(id, "Player banned")
 				return
-			var duplicate := not principal.is_empty() and identities.values().any(func(value): return value.key == principal.key)
-			if principal.is_empty() or duplicate or identities.size() >= 4:
+			# One play and one management link per identity. Claimed purpose only
+			# affects admission AFTER signed proof, password, ban and ACL checks.
+			var duplicate := not principal.is_empty() and identities.values().any(func(value): return value.key == principal.key and value.purpose == principal.purpose)
+			var management: bool = principal.get("purpose", "") == "manage"
+			var count := identities.values().filter(func(value): return (value.purpose == "manage") == management).size()
+			var allowed: bool = not management or (admin_secure and admin_acl.allows(principal.get("key", "")))
+			if principal.is_empty() or duplicate or count >= (2 if management else 4) or not allowed:
 				_raw_send(remote, {"type": "rejected", "reason": "Player already connected" if duplicate else "Join denied: password, identity or player limit"})
 				row.stage = "rejected"
 				remote.peer_disconnect_later()
@@ -173,7 +208,7 @@ func _authentication(id: int, bytes: PackedByteArray) -> void:
 			_raw_send(remote, {"type": "accepted"})
 		return
 	if message.get("type") == "certificate" and row.stage == "auth":
-		if message.size() != 3 or not message.get("certificate") is String or message.certificate.length() > 4096 or not message.get("nonce") is String or message.nonce.length() != 64: return
+		if message.size() != 4 or not (message.get("version") is float or message.get("version") is int) or message.version != 2 or not message.get("certificate") is String or message.certificate.length() > 4096 or not message.get("nonce") is String or not preload("res://scripts/network/player_bans.gd").valid_key(message.nonce): return
 		if _pin.is_empty():
 			var certificate := X509Certificate.new()
 			if certificate.load_from_string(message.certificate) != OK:
@@ -185,7 +220,7 @@ func _authentication(id: int, bytes: PackedByteArray) -> void:
 		if message.certificate != _pin:
 			_fatal("Server certificate changed")
 			return
-		_raw_send(remote, Auth.response(identity_key, message.nonce, _pin, player_name, password))
+		_raw_send(remote, Auth.response(identity_key, message.nonce, _pin, player_name, password, purpose, admin_enabled))
 		row.stage = "accepted"
 	elif message == {"type": "accepted"} and row.stage == "accepted":
 		if trusted_servers.size() >= 128 and not trusted_servers.has(_trust_address()):
@@ -242,8 +277,14 @@ func poll() -> void:
 			var id := int(_native_ids.get(remote.get_instance_id(), 0))
 			var channel: int = event[3]
 			var bytes := remote.get_packet()
+			largest_received_packet = maxi(largest_received_packet, bytes.size())
+			if bytes.size() > (AUTH_MAX if channel == AUTH_CHANNEL else MAX_PACKET):
+				oversized_packets += 1
+				reject_peer(id, "Invalid packet size")
+				continue
 			if channel == AUTH_CHANNEL: _authentication(id, bytes)
-			elif _connections.has(id) and channel < CHANNELS:
+			elif _connections.has(id) and channel <= CHANNELS:
+				if _server and identities.get(id, {}).get("purpose") == "manage" and channel != 5: continue
 				received_bytes += bytes.size()
 				if bytes.size() <= MAX_PACKET and received.size() < 512:
 					received.append({"peer": id, "channel": channel, "bytes": bytes})
@@ -263,7 +304,7 @@ func poll() -> void:
 
 
 func send_to(target: int, channel: int, bytes: PackedByteArray, reliable: bool) -> bool:
-	if peer == null or bytes.size() > MAX_PACKET or channel < 0 or channel >= CHANNELS: return false
+	if peer == null or bytes.size() > MAX_PACKET or channel < 0 or channel > CHANNELS: return false
 	var destination: ENetPacketPeer = _connections.get(target)
 	if destination == null or not destination.is_active() or destination.get_state() != ENetPacketPeer.STATE_CONNECTED: return false
 	# Preserve the old MultiplayerPeer mode: unordered unreliable packets must
@@ -332,5 +373,18 @@ func latency_ms(id: int) -> int:
 	return clampi(roundi(remote.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME)), 0, 60000)
 
 
+## Host-local console metadata. Never included in public player snapshots.
+func remote_endpoint(id: int) -> Dictionary:
+	var remote: ENetPacketPeer = _connections.get(id)
+	if remote == null or not remote.is_active(): return {}
+	return {"address": remote.get_remote_address(), "port": remote.get_remote_port()}
+
+
 func _exit_tree() -> void:
 	close()
+
+
+static func hardened_engine(connection: ENetConnection) -> bool:
+	if not connection.has_method("get_security_limits"): return false
+	var limits: Dictionary = connection.call("get_security_limits")
+	return limits.get("version") == 1 and limits.get("packet") == AUTH_MAX and limits.get("waiting") == 262144 and limits.get("overhead") == 256 and limits.get("unreliable_guard", false) and limits.get("dtls_guard", false)

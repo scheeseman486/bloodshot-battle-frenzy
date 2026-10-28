@@ -88,6 +88,62 @@ var _pause_input_event: InputEvent
 var _checkpoint_resume := false
 
 
+func is_single_player_campaign() -> bool:
+	# The scene alone is insufficient: recorded demos and one-seat online
+	# authorities must never inherit a selectable campaign cheat boundary.
+	return (
+		ready_to_play
+		and session.world.stop_when_exhausted
+		and not session.world.demo_mode
+		and driver.recording.is_empty()
+		and session.world.players.size() == 1
+		and session.world.vs_state.is_empty()
+		and not session.actor_system.native_multiplayer
+	)
+
+
+func sync_cheat_policy() -> void:
+	if not is_single_player_campaign():
+		return
+	if preload("res://scripts/frontend/cd_cheat_settings.gd").enabled():
+		server.campaign.disable_scoring_for_cheats()
+	server.sync_score_policy()
+
+
+func apply_menu_cheat(callback: int) -> bool:
+	var rules = preload("res://scripts/frontend/cd_pause_rules.gd")
+	if (
+		not is_single_player_campaign()
+		or not paused
+		or not is_instance_valid(_pause_view)
+		or not _pause_view.accepts_controls
+		or _pause_view._done
+		or not preload("res://scripts/frontend/cd_cheat_settings.gd").enabled()
+	):
+		return false
+	if (
+		callback not in [0x30a12, 0x30a46, 0x30a5e, 0x30a8a, 0x30a96, 0x30aa6]
+		and not rules.WEAPON_CALLBACKS.has(callback)
+	):
+		return false
+	sync_cheat_policy()
+	var state: Dictionary = rules.apply(_pause_state(), callback)
+	_commit_pause_state(state)
+	for sound: int in state.audio:
+		_pause_view.get_node("Audio").play_source(sound)
+	server.refresh_views(true)
+	if callback == 0x30a12:
+		# Source skip bypasses completion cards and caps at a reload of level 16.
+		var carry: Dictionary = preload("res://scripts/simulation/cd_campaign_carry.gd").capture(session)
+		_pause_view._done = true
+		_pause_view.accepts_controls = false
+		_transition_pending = true
+		load_level.call_deferred(int(state.level), carry)
+	else:
+		_updated()
+	return true
+
+
 func _ready() -> void:
 	# Attract playback subclasses this scene with its own recorded-input driver.
 	if driver.recording.is_empty():
@@ -155,7 +211,7 @@ func load_level(number: int, carry: Dictionary = {}) -> bool:
 	)
 	client = server.attach_client(0)
 	$OriginalHud/Hud.status_language = int(choices.language)
-	preload("res://scripts/audio/cd_audio_settings.gd").set_source_mode(int(choices.sound))
+	preload("res://scripts/audio/cd_audio_settings.gd").restore_user_mix(int(choices.sound))
 	if not $OriginalHud/Hud.configure($World, client.session):
 		$Overlay/Panel/Content/Status.text = $World.source.last_error
 		return false
@@ -174,6 +230,7 @@ func load_level(number: int, carry: Dictionary = {}) -> bool:
 	$Overlay/Panel/Content/Restart.text = "Restart level"
 	paused = false
 	ready_to_play = true
+	sync_cheat_policy()
 	$Overlay/Panel.visible = false
 	$Overlay/Panel/Content/Status.text = "LEVEL%d · European CD" % level_number
 	_previous_usec = Time.get_ticks_usec()
@@ -271,6 +328,7 @@ func _advance_to_now() -> void:
 
 
 func _process(_delta: float) -> void:
+	sync_cheat_policy()
 	_advance_to_now()
 	if ready_to_play and not paused:
 		_present()
@@ -302,7 +360,7 @@ func _input(event: InputEvent) -> void:
 		or event is InputEventJoypadMotion
 	):
 		_advance_to_now()
-		_pause_input_event = event if native_controls.ingest(event) else null
+		_pause_input_event = event if native_controls.ingest(event, _allow_mouse_actions(), not paused and int(session.fighter.state) == 1) else null
 		if ready_to_play and not paused:
 			client.command(_controls(0), _aim_rate())
 	if (
@@ -352,8 +410,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		and not event.echo
 		and event.physical_keycode == KEY_ESCAPE
 	)
-	# Direct event injection is also used by the original pause regression tools.
-	var request_pause := _pause_input_event == event or native_controls.ingest(event)
+	# Direct pause injection is also used by regression tools. Gameplay input
+	# already passed through _input; the fallback must never queue a second
+	# weapon request, including wheel pulses that have no held/release state.
+	var request_pause := (
+		_pause_input_event == event
+		or native_controls.ingest(event, _allow_mouse_actions(), false)
+	)
 	_pause_input_event = null
 	if native_escape or request_pause:
 		if not paused and not native_escape:
@@ -376,6 +439,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _set_paused(value: bool, cue: bool = true) -> void:
+	sync_cheat_policy()
 	if _transition_pending or session.is_game_over():
 		return
 	if not ready_to_play or value == paused:
@@ -644,6 +708,7 @@ func _present_objective() -> void:
 
 
 func capture_checkpoint() -> PackedByteArray:
+	sync_cheat_policy()
 	# Pause slots and research tools use the same complete checkpoint backend.
 	if not ready_to_play or session.world._atomic_depth != 0:
 		session.world.last_checkpoint_error = "Capture requires a ready campaign at a completed boundary"
@@ -675,6 +740,15 @@ func restore_checkpoint(bytes: PackedByteArray) -> bool:
 	var state := {
 		"campaign": candidate.campaign_state, "presentation": candidate.presentation_state
 	}
+	# Save history is monotonic within the active campaign, even when loading
+	# an earlier clean slot. The current preference never clears provenance.
+	var ever: bool = (
+		server.campaign.cheats_ever_enabled
+		or bool(state.campaign.get("cheats_ever_enabled", state.campaign.get("cheated", false)))
+		or preload("res://scripts/frontend/cd_cheat_settings.gd").enabled()
+	)
+	state.campaign.cheats_ever_enabled = ever
+	state.campaign.score_eligible = bool(state.campaign.score_eligible) and score_eligible and not ever
 	var number: int = state.campaign.level_number
 	# Validation and media rebinding have completed before changing the live
 	# scene. Rebuilding never ticks the candidate or emits historical effects.
@@ -709,6 +783,7 @@ func restore_checkpoint(bytes: PackedByteArray) -> bool:
 	$Audio.bind_listener($Player/Camera, $World.level.spawn)
 	var attachments := preload("res://scripts/persistence/checkpoint_attachments.gd").new()
 	attachments.restore_campaign(self, state.campaign)
+	sync_cheat_policy()
 	server.refresh_views(true)
 	attachments.attach_views(self, state)
 	# Rebase host time and release physical controls. Accepted semantic latch

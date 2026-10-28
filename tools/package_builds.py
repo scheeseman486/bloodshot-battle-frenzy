@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Build x86_64 Windows ZIP / Linux AppImage releases with external original media."""
+"""Build x86_64 clients and standalone server archives with external game media."""
 from __future__ import annotations
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -10,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import zipfile
 
 from build_support import download
@@ -30,13 +32,34 @@ APPIMAGE = {
                 'aa154fc9070614bbe7921f89db11efd1dba7a1f3a41685958110e2230f9c0ca1'),
 }
 FORBIDDEN = re.compile(r'(^|/)(?:tests|contracts|asset-cache|\.git|\.godot|local|user-data|addons/(?!bloodshot_audio/)[^/]+)(/|$)|\.(?:chd|iso|cue|gen|smd|key|pem|sav|xcf|gz)$', re.I)
+CLIENT_FILES = {
+    'bloodshot', 'bloodshot.exe', 'bloodshot.pck', 'README.txt', 'roms/README.txt',
+    'LICENSE', 'THIRD_PARTY_NOTICES.txt', 'GODOT_ENGINE_NOTICES.txt',
+    'LINUX_NATIVE_NOTICES.txt', 'WINDOWS_NATIVE_NOTICES.txt',
+    'libbloodshot_audio.linux.template_release.x86_64.so',
+    'bloodshot_audio.windows.template_release.x86_64.dll',
+}
+SERVER_COMMON = {'bloodshot-server.pck', 'README.txt', 'roms/README.txt', 'LICENSE',
+                 'THIRD_PARTY_NOTICES.txt', 'GODOT_ENGINE_NOTICES.txt'}
+SERVER_FILES = {
+    'linux': SERVER_COMMON | {'bloodshot-server', 'LINUX_NATIVE_NOTICES.txt',
+                             'libbloodshot_audio.linux.template_release.x86_64.so'},
+    'windows': SERVER_COMMON | {'bloodshot-server.exe', 'bloodshot-server.console.exe',
+                               'WINDOWS_NATIVE_NOTICES.txt',
+                               'bloodshot_audio.windows.template_release.x86_64.dll'},
+}
 
 
-def validate_payload(source: Path) -> None:
+def validate_payload(source: Path, allowed_files: set[str] | None = None) -> None:
+    if source.is_symlink() or not source.is_dir():
+        raise ValueError('Release payload must be a real directory')
+    allowed_files = CLIENT_FILES if allowed_files is None else allowed_files
     for path in source.rglob('*'):
         name = path.relative_to(source).as_posix()
         if path.is_symlink() or FORBIDDEN.search(name):
             raise ValueError('Forbidden release payload: ' + name)
+        if (path.is_file() and name not in allowed_files) or (path.is_dir() and name != 'roms'):
+            raise ValueError('Unreviewed release payload: ' + name)
 
 
 def windows_zip(source: Path, target: Path) -> None:
@@ -49,14 +72,51 @@ def windows_zip(source: Path, target: Path) -> None:
     for name in required:
         if not (source / name).is_file():
             raise ValueError('Missing Windows release file: ' + name)
+    _zip_bundle(source, target, 'Bloodshot-Windows-x86_64')
+
+
+def _zip_bundle(source: Path, target: Path, folder: str) -> None:
     with zipfile.ZipFile(target, 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in sorted(source.rglob('*')):
             if path.is_file():
                 # Stable metadata; build binary hashes still identify the exact toolchain.
-                entry = zipfile.ZipInfo('Bloodshot-Windows-x86_64/' + path.relative_to(source).as_posix())
+                entry = zipfile.ZipInfo(folder + '/' + path.relative_to(source).as_posix())
                 entry.external_attr = 0o100644 << 16
                 entry.compress_type = zipfile.ZIP_DEFLATED
                 archive.writestr(entry, path.read_bytes())
+
+
+def server_archive(source: Path, target: Path, platform: str) -> None:
+    """Keep a complete, reviewed server together in one portable directory."""
+    if platform not in SERVER_FILES:
+        raise ValueError('Unsupported server platform: ' + platform)
+    if target.exists():
+        raise FileExistsError('Artifact already exists: ' + str(target))
+    required = SERVER_FILES[platform]
+    validate_payload(source, required)
+    for name in sorted(required):
+        if not (source / name).is_file():
+            raise ValueError('Missing server release file: ' + name)
+    folder = 'Bloodshot-Server-' + ('Linux' if platform == 'linux' else 'Windows') + '-x86_64'
+    if platform == 'windows':
+        _zip_bundle(source, target, folder)
+        return
+    # A server tarball needs neither an AppImage mount nor desktop/Vulkan setup.
+    # Retain the same older-glibc/dependency gate used by Linux clients.
+    audit_tree(source)
+    with target.open('xb') as stream, gzip.GzipFile(
+        fileobj=stream, mode='wb', filename='', mtime=0, compresslevel=9
+    ) as compressed, tarfile.open(fileobj=compressed, mode='w|', format=tarfile.PAX_FORMAT) as archive:
+        for path in sorted(source.rglob('*')):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(source).as_posix()
+            entry = tarfile.TarInfo(folder + '/' + relative)
+            entry.size = path.stat().st_size
+            entry.mode = 0o755 if relative == 'bloodshot-server' else 0o644
+            # Stable metadata excludes builder names, host paths and mtimes.
+            with path.open('rb') as contents:
+                archive.addfile(entry, contents)
 
 
 def appimage(source: Path, target: Path) -> None:
@@ -115,6 +175,9 @@ def build(output: Path, platform: str, skip_native: bool = False) -> None:
     if output.exists() and any(output.iterdir()):
         raise FileExistsError('Use a fresh release directory: ' + str(output))
     output.mkdir(parents=True, exist_ok=True)
+    for target_platform in (['linux', 'windows'] if platform == 'all' else [platform]):
+        subprocess.run([sys.executable, str(ROOT / 'tools/build_engine.py'),
+                        '--platform', target_platform, '--target', 'template_release'], check=True)
     # The Linux editor imports the staging project even for a Windows export.
     if not skip_native:
         for args in [[], ['--release']] + ([['--platform', 'windows', '--release']] if platform in ['all', 'windows'] else []):
@@ -125,13 +188,25 @@ def build(output: Path, platform: str, skip_native: bool = False) -> None:
         target = output / 'Bloodshot-Linux-x86_64.AppImage'
         appimage(output / 'exports/client', target)
         artifacts.append(target)
+        target = output / 'Bloodshot-Server-Linux-x86_64.tar.gz'
+        server_archive(output / 'exports/server', target, 'linux')
+        artifacts.append(target)
     if platform in ['all', 'windows']:
         target = output / 'Bloodshot-Windows-x86_64.zip'
         windows_zip(output / 'exports/windows-client', target)
         artifacts.append(target)
+        target = output / 'Bloodshot-Server-Windows-x86_64.zip'
+        server_archive(output / 'exports/windows-server', target, 'windows')
+        artifacts.append(target)
     info = {'architecture': 'x86_64', 'build_host': 'Linux',
             'godot_sha256': hashlib.sha256((ROOT / 'tools/bin/godot-4.7.1').read_bytes()).hexdigest(),
-            'native': {}}
+            'native': {}, 'release_engines': {}}
+    # The official editor imports/exports; the patched templates are what ship.
+    # Preserve their reviewed source, patch, ABI, probe and exact binary hashes.
+    for target_platform in (['linux', 'windows'] if platform == 'all' else [platform]):
+        info['release_engines'][target_platform] = json.loads((
+            ROOT / 'local/build/engine' / f'{target_platform}-template_release/build.json'
+        ).read_text())
     for name in ['native-build.json', 'native-build-windows.json']:
         path = ROOT / 'game/addons/bloodshot_audio' / name
         if path.exists() and (name == 'native-build.json' or platform in ['windows', 'all']):
@@ -139,6 +214,7 @@ def build(output: Path, platform: str, skip_native: bool = False) -> None:
     if platform in ['linux', 'all']:
         info['linux_abi'] = audit_tree(output / 'exports/client')
         info['linux_minimum_glibc'] = info['linux_abi']['maximum_glibc']
+        info['linux_server_abi'] = audit_tree(output / 'exports/server')
     (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
     record = {path.name: {'bytes':path.stat().st_size, 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
               for path in artifacts}

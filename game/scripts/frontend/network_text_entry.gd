@@ -14,6 +14,10 @@ var _canvas: Control
 var _done := false
 
 
+func _enter_tree() -> void:
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(self)
+
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP

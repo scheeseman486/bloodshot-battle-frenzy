@@ -1,10 +1,11 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/network_gameplay/network_gameplay.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/world/native_cd_world.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/player/cd_player.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/audio/cd_audio_service.gd" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/live_score_tally/live_score_tally.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/small_notice/small_notice.tscn" id="10"]
 
 [ext_resource type="Script" path="res://scenes/actors/cd_actor_layer.gd" id="5"]
 
@@ -48,7 +49,5 @@ layer = 1
 
 [node name="LiveScores" parent="OriginalHud" instance=ExtResource("9")]
 
-[node name="Status" type="Label" parent="OriginalHud"]
-offset_left = 16.0
-offset_top = 16.0
-text = "Connecting…"
+[node name="Status" parent="OriginalHud" instance=ExtResource("10")]
+text = "Connecting..."

@@ -14,6 +14,10 @@ var _frame := Rect2()
 var _scale := Vector2.ONE
 
 
+func _enter_tree() -> void:
+	preload("res://scripts/presentation/sharp_bilinear_ui.gd").apply(self)
+
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

@@ -1,8 +1,11 @@
 #include "cdda_stream.h"
 #include "chd_disc.h"
 #include "fm_stream.h"
+#include "gems_stream.h"
 #include "mw_chips.h"
 #include "primitive_codec.h"
+#include "console_input.h"
+#include "private_files.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -14,9 +17,13 @@ static void initialize(ModuleInitializationLevel level) {
     if (level != MODULE_INITIALIZATION_LEVEL_SCENE)
         return;
     GDREGISTER_CLASS(bloodshot::BloodshotPrimitiveCodec);
+    GDREGISTER_CLASS(bloodshot::BloodshotConsoleInput);
+    GDREGISTER_CLASS(bloodshot::BloodshotPrivateFiles);
     GDREGISTER_CLASS(mw::MwChips);
     GDREGISTER_CLASS(bloodshot::BloodshotFmPlayback);
     GDREGISTER_CLASS(bloodshot::BloodshotFmStream);
+    GDREGISTER_CLASS(bloodshot::BloodshotGemsPlayback);
+    GDREGISTER_CLASS(bloodshot::BloodshotGemsStream);
     GDREGISTER_CLASS(bloodshot::BloodshotDisc);
     GDREGISTER_CLASS(bloodshot::BloodshotCddaPlayback);
     GDREGISTER_CLASS(bloodshot::BloodshotCddaStream);
@@ -25,7 +32,8 @@ static void uninitialize(ModuleInitializationLevel level) {
 #if defined(__linux__)
     if (level == MODULE_INITIALIZATION_LEVEL_SCENE &&
         (bloodshot::BloodshotCddaPlayback::live_instances() ||
-         bloodshot::BloodshotFmPlayback::live_instances())) {
+         bloodshot::BloodshotFmPlayback::live_instances() ||
+         bloodshot::BloodshotGemsPlayback::live_instances())) {
         // A forced engine quit can bypass the application's mixer drain.
         // Retained AudioServer callbacks must never point into an unloaded DSO.
         // Normal application exits retire every playback and do not pin it.

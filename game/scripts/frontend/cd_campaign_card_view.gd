@@ -63,6 +63,7 @@ func _open_page() -> void:
 	clearing_text.clear()
 	deadline = ticks + 250
 	layout = catalog.campaign_layout(pages[page_index], int(Settings.values().language))
+	refresh_score_layout()
 	queue_redraw()
 
 
@@ -87,13 +88,18 @@ func _begin_summary() -> void:
 		int(result.level),
 		int(result.kills),
 		int(result.bonuses),
-		Rules.power_rating(int(result.tally)),
+		0 if bool(result.get("scoring_disabled",false)) else Rules.power_rating(int(result.tally)),
 		true
 	)
 	page_index = 0
 	music_changed.emit(4)
 	$Audio.play_track(4, false)
 	_open_page()
+
+
+func refresh_score_layout() -> void:
+	if bool(result.get("scoring_disabled",false)) and page_index==1 and phase!="continue":
+		layout={"commands":[],"duration":0}
 
 
 func _process(delta: float) -> void:
@@ -197,7 +203,13 @@ func _draw() -> void:
 	if catalog == null or _done:
 		return
 	draw_set_transform(frame.position, 0, artwork_scale)
-	if _closing > 0:
+	if bool(result.get("scoring_disabled",false)) and page_index==1 and phase!="continue":
+		var font: Font=source.load_cd_small_font().native_font()
+		for line: Array in [["Scoring disabled",104],["Cheats enabled",122]]:
+			var text: String=line[0]
+			var width:=font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,12).x
+			draw_string(font,Vector2((256-width)*0.5,float(line[1])),text,HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color.WHITE)
+	elif _closing > 0:
 		draw_clearing_text()
 	elif phase == "continue":
 		for glyph: Dictionary in _continuation_commands():

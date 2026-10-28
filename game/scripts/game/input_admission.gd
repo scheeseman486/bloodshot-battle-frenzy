@@ -61,6 +61,9 @@ static func apply_due(world: RefCounted) -> void:
 			continue
 		state.controls[player.handle] = event.controls
 		state.rates[player.handle] = event.rate
+		# Process every admitted native selection at its ordered boundary; wheel
+		# presses cannot be overwritten by a later release before input sampling.
+		player.select_native_weapon(int(event.controls.held))
 		for delta: int in event.aim:
 			Motion.aim(player.motion, float(delta) / 65536.0)
 

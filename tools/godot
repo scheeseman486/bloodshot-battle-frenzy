@@ -6,5 +6,6 @@ export XDG_DATA_HOME="$root/local/share"
 export XDG_CACHE_HOME="$root/local/cache"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 engine="$root/tools/bin/godot-4.7.1"
+if [[ -x "$root/tools/bin/godot-4.7.1-network" ]]; then engine="$root/tools/bin/godot-4.7.1-network"; fi
 [[ -x "$engine" ]] || { echo "Run python3 tools/setup.py --godot /path/to/godot first" >&2; exit 1; }
 exec "$engine" --path "$root/game" "$@"

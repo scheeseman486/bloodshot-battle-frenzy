@@ -175,8 +175,10 @@ func native_font() -> FontFile:
 	font.fixed_size = 12
 	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 	font.allow_system_fallback = false
-	font.set_cache_ascent(0, 12, 8)
-	font.set_cache_descent(0, 12, 4)  # Two descender rows plus two rows of leading.
+	# Balance the two leading rows around the ten-row ink band. Native controls
+	# center using these metrics; glyph offsets keep explicit draw baselines intact.
+	font.set_cache_ascent(0, 12, 9)  # Eight ink rows plus one row of leading.
+	font.set_cache_descent(0, 12, 3)  # Two descender rows plus one row of leading.
 	var atlas := Image.create_empty(256, 72, false, Image.FORMAT_RGBA8)
 	var size_key := Vector2i(12, 0)
 	for code: int in available_codes():
@@ -184,13 +186,15 @@ func native_font() -> FontFile:
 		var cell := code - 32
 		@warning_ignore("integer_division")
 		var origin := Vector2i((cell % 16) * 16, (cell / 16) * 12)
-		atlas.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), origin)
+		# Transparent gutters let the sharp filter cover the glyph's outer edge
+		# without clipping or reading a neighbor. Original ink/pen positions stay.
+		atlas.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), origin + Vector2i.ONE)
 		font.set_glyph_advance(0, 12, code, Vector2(advance(code), 0))
 		font.set_glyph_offset(
-			0, size_key, code, Vector2(0, -8 if _addition_textures.has(code) else -7)
+			0, size_key, code, Vector2(-1, -9 if _addition_textures.has(code) else -8)
 		)
-		font.set_glyph_size(0, size_key, code, image.get_size())
-		font.set_glyph_uv_rect(0, size_key, code, Rect2(origin, image.get_size()))
+		font.set_glyph_size(0, size_key, code, image.get_size() + Vector2i(2, 2))
+		font.set_glyph_uv_rect(0, size_key, code, Rect2(origin, image.get_size() + Vector2i(2, 2)))
 		font.set_glyph_texture_idx(0, size_key, code, 0)
 	font.set_texture_image(0, size_key, 0, atlas)
 	_native_font = font
